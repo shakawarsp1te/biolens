@@ -1,0 +1,3554 @@
+# BioLens — Claude Code Master Build Brief
+
+## READ THIS FIRST
+
+You are building **BioLens**, an investor-oriented biotechnology intelligence application.
+
+Do not treat this as a generic AI chatbot.
+
+Do not treat this as a stock-picking application.
+
+Do not attempt to index the entire biomedical literature.
+
+Do not build the web application yet.
+
+The first product is:
+
+# **An iOS-first mobile application**
+
+Build it using a cross-platform framework so Android can eventually follow, but optimize V1 exclusively around the iPhone experience.
+
+The initial product should be small enough to build, test, and release to beta users within approximately 30 days.
+
+The long-term ambition can be large.
+
+The MVP cannot be.
+
+---
+
+# 1. PRODUCT VISION
+
+## One-sentence vision
+
+**BioLens helps investors discover the frontier of biotechnology and understand the science behind emerging companies, therapies, and clinical-trial catalysts.**
+
+Alternative positioning:
+
+> **The frontier of biotech, explained.**
+
+Alternative:
+
+> **Discover emerging biotech. Understand the science.**
+
+Alternative:
+
+> **From molecule to market.**
+
+The application should feel like a combination of:
+
+* biotech intelligence terminal
+* scientific translator
+* emerging-company discovery platform
+* clinical-trial interpreter
+* investor education product
+
+But it should have the simplicity of a consumer application.
+
+The user should not feel like they are using Bloomberg.
+
+The user should feel like:
+
+> “BioLens just made something that would have taken me an hour of research understandable in three minutes.”
+
+---
+
+# 2. THE FUNDAMENTAL PROBLEM
+
+Biotechnology investing has an unusually high knowledge barrier.
+
+An investor may encounter:
+
+> “Company X reports Phase II data showing a 31% ORR, median DOR not reached, and median PFS of 8.4 months in second-line biomarker-positive NSCLC.”
+
+That sentence requires understanding:
+
+* cancer biology
+* clinical-trial design
+* response criteria
+* statistics
+* standard of care
+* drug mechanisms
+* biomarkers
+* competitive treatments
+* regulatory development
+* commercial markets
+* company pipelines
+
+The information may be distributed among:
+
+* ClinicalTrials.gov
+* company investor relations pages
+* SEC filings
+* scientific publications
+* FDA materials
+* conference abstracts
+* drug labels
+* press releases
+
+BioLens should transform these fragmented sources into:
+
+### What happened?
+
+### What does the science mean?
+
+### How strong is the evidence?
+
+### What is still unknown?
+
+### Who competes with this company?
+
+### Why might investors care?
+
+### What happens next?
+
+---
+
+# 3. BIOlens IS NOT A STOCK PICKER
+
+This is important.
+
+Never design BioLens around:
+
+**BUY**
+
+**SELL**
+
+**STRONG BUY**
+
+**UNDERVALUED**
+
+**PRICE TARGET**
+
+Do not make personalized investment recommendations.
+
+BioLens is an:
+
+> **investment research, scientific interpretation, and company-discovery tool.**
+
+The application can explain investor implications.
+
+For example:
+
+> “This result reduces one major clinical uncertainty surrounding the program.”
+
+Good.
+
+> “The stock should rise 30%.”
+
+Bad.
+
+It can say:
+
+> “This asset represents a substantial portion of the company's clinical pipeline, making the result strategically important.”
+
+Good.
+
+It should not say:
+
+> “You should buy the stock before Phase III.”
+
+Bad.
+
+---
+
+# 4. THE CENTRAL PRODUCT LOOP
+
+Every BioLens experience should revolve around:
+
+# DISCOVER
+
+Find an interesting biotech company or event.
+
+↓
+
+# UNDERSTAND
+
+Understand the biology and clinical evidence.
+
+↓
+
+# EVALUATE
+
+Understand strengths, weaknesses, uncertainty, and competition.
+
+↓
+
+# FOLLOW
+
+Save the company or therapy to a watchlist.
+
+↓
+
+# RETURN
+
+Come back when new data appear.
+
+This creates repeat usage.
+
+---
+
+# 5. INITIAL TARGET USER
+
+Do not build initially for professional pharmaceutical scientists.
+
+Do not build initially for hedge-fund analysts with access to expensive institutional terminals.
+
+The initial target user is:
+
+## The intelligent biotech-curious investor who does not have years of scientific training.
+
+Examples:
+
+* college students interested in biotech investing
+* finance students researching biotech
+* retail investors interested in biotechnology
+* young biotech professionals
+* consulting students
+* VC interns
+* healthcare-investment-club members
+* scientists interested in the commercial side of biotechnology
+
+Knowledge level:
+
+They may understand:
+
+* market cap
+* revenue
+* clinical trial phases
+
+But they may not understand:
+
+* hazard ratios
+* RECIST
+* PFS versus OS
+* biomarkers
+* target biology
+* drug modality differences
+* statistical multiplicity
+* dose-response relationships
+
+BioLens bridges that gap.
+
+---
+
+# 6. MOBILE FIRST — ABSOLUTE REQUIREMENT
+
+## Build only the mobile product for V1.
+
+Do not simultaneously build:
+
+* full website
+* web dashboard
+* browser extension
+* desktop app
+
+Those can come later.
+
+A simple backend API is obviously required, but the customer-facing product is mobile.
+
+Recommended stack:
+
+### Mobile
+
+React Native
+
+Expo
+
+TypeScript
+
+Expo Router
+
+### Backend
+
+Python
+
+FastAPI
+
+### Database
+
+PostgreSQL
+
+Supabase is acceptable.
+
+### Authentication
+
+Supabase Auth
+
+### Vector retrieval
+
+Postgres + pgvector
+
+Do not introduce Pinecone or another vector database unless a clear requirement emerges.
+
+### AI
+
+Create a provider abstraction.
+
+For example:
+
+`LLMProvider`
+
+so the backend can call the selected language model without coupling the entire application to one vendor.
+
+All LLM API calls occur on the backend.
+
+Never expose API keys in the mobile app.
+
+---
+
+# 7. IOS-FIRST DESIGN
+
+The initial build target is:
+
+**iPhone**
+
+Development:
+
+Expo Go where possible.
+
+Beta distribution:
+
+TestFlight.
+
+Android compatibility is desirable but should never delay the iOS experience.
+
+---
+
+# 8. PRIMARY NAVIGATION
+
+Use five tabs:
+
+## Home
+
+## Discover
+
+## Search
+
+## Watchlist
+
+## Profile
+
+These should be the only main navigation sections initially.
+
+---
+
+# 9. HOME — “THE FRONTIER”
+
+The home feed should not look like generic biotech news.
+
+Call the primary feed:
+
+# The Frontier
+
+Possible headline:
+
+> **What's moving biotechnology forward today?**
+
+Each card represents an important event.
+
+Example:
+
+---
+
+**JANX**
+
+Janux Therapeutics
+
+### New clinical data
+
+**Early efficacy data reported for tumor-activated T-cell engager**
+
+Phase I
+
+Prostate cancer
+
+**Why it matters**
+
+First meaningful human efficacy signal for one of Janux's lead programs.
+
+[Understand in 2 min]
+
+---
+
+Another:
+
+**CRDF**
+
+Cardiff Oncology
+
+### Phase II readout
+
+**Onvansertib combination advances toward registrational development**
+
+Colorectal cancer
+
+**Evidence maturity**
+
+Moderate
+
+[Analyze]
+
+---
+
+The feed should prioritize events rather than simply companies.
+
+Event categories:
+
+* first patient dosed
+* Phase I data
+* Phase II data
+* Phase III data
+* trial initiation
+* trial failure
+* FDA submission
+* FDA approval
+* FDA rejection
+* Fast Track designation
+* Breakthrough Therapy designation
+* partnership
+* licensing agreement
+* acquisition
+* financing
+* scientific publication
+* conference presentation
+* pipeline discontinuation
+
+---
+
+# 10. THE MOST IMPORTANT FEED PRINCIPLE
+
+Do not optimize primarily for:
+
+> biggest companies.
+
+Optimize for:
+
+> **most interesting biotechnology events.**
+
+BioLens should be capable of putting an obscure $300M biotech above Pfizer in the feed if the smaller company just produced interesting clinical evidence.
+
+That is a core differentiator.
+
+---
+
+# 11. DISCOVER PAGE
+
+The Discover page exists primarily to surface companies users would otherwise never encounter.
+
+Headline:
+
+# Discover emerging biotech
+
+Filters:
+
+### Therapeutic Area
+
+Oncology
+
+Later:
+
+Immunology
+Metabolic
+Neurology
+Rare disease
+
+Do not implement these other areas during initial data build.
+
+### Stage
+
+Preclinical
+
+Phase I
+
+Phase II
+
+Phase III
+
+Commercial
+
+### Modality
+
+Small molecule
+
+Monoclonal antibody
+
+Bispecific
+
+T-cell engager
+
+ADC
+
+Cell therapy
+
+Gene therapy
+
+RNA
+
+Protein degrader
+
+Molecular glue
+
+Other
+
+### Target
+
+Searchable.
+
+Examples:
+
+KRAS
+
+EGFR
+
+HER2
+
+CD19
+
+PRMT5
+
+PI3Kα
+
+### Company maturity
+
+Emerging
+
+Growth-stage
+
+Established pharma
+
+---
+
+# 12. “EMERGING” MUST MEAN SOMETHING
+
+Do not make “emerging biotech” a random editorial label.
+
+Create transparent inclusion logic.
+
+A company may qualify for the Emerging feed if:
+
+* it is publicly traded
+* it remains primarily biotechnology-focused
+* it has at least one clinical-stage therapeutic program
+* it does not have a diversified large-pharma commercial portfolio
+* a significant portion of company value still depends on pipeline execution
+
+Market capitalization can eventually be incorporated, but do not make real-time market-cap data a dependency for V1.
+
+A company can be marked:
+
+### Emerging
+
+### Scaling
+
+### Established
+
+This can initially be curated manually.
+
+---
+
+# 13. COMPANY SEED UNIVERSE
+
+Do not begin with 5,000 companies.
+
+Begin with approximately:
+
+# 30 companies
+
+Approximately:
+
+20 emerging / smaller biotech companies
+
+5–7 growth-stage biotech companies
+
+5 large pharmaceutical comparison companies
+
+This allows quality to remain high.
+
+---
+
+# 14. INITIAL THERAPEUTIC AREA
+
+Start with:
+
+# ONCOLOGY
+
+Do not attempt to support all disease areas during the first month.
+
+Reasons:
+
+* high frequency of clinical readouts
+* strong relationship between clinical events and company value
+* relatively standardized endpoints
+* extensive public trial data
+* many emerging companies
+* meaningful target competition
+* strong investor interest
+
+Later expansion order:
+
+1. Immunology
+2. Metabolic / obesity
+3. Neurology
+4. Rare disease
+5. Other areas
+
+---
+
+# 15. INITIAL EMERGING COMPANY WATCHLIST
+
+Seed the database with current clinical-stage companies representing different technologies.
+
+Initial candidates should include companies such as:
+
+### Janux Therapeutics
+
+Focus:
+
+tumor-activated T-cell engagers / immunotherapies.
+
+Why useful:
+
+demonstrates next-generation immunotherapy platform development.
+
+### Cullinan Therapeutics
+
+Focus:
+
+T-cell engagers and targeted therapies.
+
+Why useful:
+
+multiple pipeline programs and immunology/oncology crossover.
+
+### Bicara Therapeutics
+
+Focus:
+
+bifunctional therapies for solid tumors.
+
+Why useful:
+
+novel modality plus clinical development.
+
+### Nurix Therapeutics
+
+Focus:
+
+targeted protein degradation.
+
+Why useful:
+
+strong example of emerging biotech developing a new modality and partnering with large pharma.
+
+### IDEAYA Biosciences
+
+Focus:
+
+precision oncology and molecularly defined cancer vulnerabilities.
+
+Why useful:
+
+strong connection between biomarkers, targeted therapy, and clinical development.
+
+### Cardiff Oncology
+
+Focus:
+
+onvansertib / RAS-mutated colorectal cancer.
+
+Why useful:
+
+smaller clinical-stage company with trial readouts capable of materially changing its development path.
+
+### Black Diamond Therapeutics
+
+Focus:
+
+oncogenic mutations and targeted therapies.
+
+Why useful:
+
+precision-oncology strategy and mutation-driven patient segmentation.
+
+### Relay Therapeutics
+
+Focus:
+
+precision medicine / dynamically informed drug discovery.
+
+Why useful:
+
+good example of technology platform translating into clinical candidates.
+
+### Tango Therapeutics
+
+Focus:
+
+synthetic-lethal oncology and PRMT5 combinations.
+
+Why useful:
+
+interesting biology plus combination-development strategy.
+
+### Monte Rosa Therapeutics
+
+Focus:
+
+molecular glue degraders.
+
+Why useful:
+
+emerging therapeutic modality and partnership potential.
+
+Use these as initial research candidates.
+
+Before seeding any company permanently, verify that:
+
+* the company still exists independently
+* the ticker is current
+* the therapeutic program remains active
+* the company has not been acquired
+
+Do this at data-seeding time.
+
+Biotechnology changes quickly.
+
+Do not hard-code assumptions forever.
+
+---
+
+# 16. LARGE-PHARMA REFERENCE COMPANIES
+
+BioLens should contain some large companies, but they should serve primarily as comparison anchors.
+
+Seed:
+
+* Eli Lilly
+* Merck
+* Amgen
+* Roche
+* Bristol Myers Squibb
+
+Potential additions later:
+
+* Pfizer
+* Novartis
+* AstraZeneca
+* GSK
+* Sanofi
+
+The feed should not be dominated by them.
+
+Suggested target content split:
+
+### 70–80%
+
+Emerging / growth-stage biotech.
+
+### 20–30%
+
+Established pharma.
+
+---
+
+# 17. WHY LARGE PHARMA STILL MATTERS
+
+Large pharmaceutical companies provide context for:
+
+* partnership activity
+* acquisitions
+* competitive programs
+* licensing
+* market incumbents
+* commercialization capability
+
+An emerging company profile should often show:
+
+> Who might care about this technology?
+
+For example:
+
+small biotech asset
+
+↓
+
+large pharma therapeutic-area strategy
+
+↓
+
+possible strategic fit
+
+Do not claim:
+
+> “Company X will acquire Company Y.”
+
+Instead say:
+
+> “The asset operates within an area where Company X has demonstrated strategic activity.”
+
+---
+
+# 18. THE COMPANY PROFILE
+
+Every company should have a standardized profile.
+
+Example:
+
+# Janux Therapeutics
+
+Ticker:
+
+JANX
+
+Status:
+
+Emerging clinical-stage biotech
+
+Primary focus:
+
+Oncology
+
+Technology:
+
+Tumor-activated immunotherapy
+
+---
+
+## BioLens Summary
+
+Three sentences maximum.
+
+Explain:
+
+1. what the company does
+2. why its technology is interesting
+3. what determines its near-term success
+
+---
+
+# 19. COMPANY “WHY IT MATTERS”
+
+Every company gets a section:
+
+# Why investors are watching
+
+Do not make this promotional.
+
+Use statements such as:
+
+> The company's valuation is heavily influenced by the clinical development of its lead programs.
+
+> Early clinical evidence could provide validation of the company's tumor-activated T-cell engager platform.
+
+> The major remaining uncertainty is whether activity observed in early patients persists across larger cohorts without unacceptable toxicity.
+
+This is useful without being investment advice.
+
+---
+
+# 20. COMPANY PIPELINE
+
+Display visually:
+
+Discovery
+
+Phase I
+
+Phase II
+
+Phase III
+
+Regulatory
+
+Approved
+
+Each asset should show:
+
+drug name
+
+target
+
+modality
+
+disease
+
+phase
+
+trial IDs
+
+next known milestone
+
+Clicking opens Drug Lens.
+
+---
+
+# 21. THE COMPANY “THESIS MAP”
+
+Each company profile should include:
+
+# What has to go right?
+
+Example:
+
+1. Lead drug needs continued efficacy at larger sample size.
+2. Safety must remain manageable.
+3. Response durability must improve or persist.
+4. Phase II development must confirm early results.
+5. Competing drugs cannot materially outperform the program.
+
+Then:
+
+# What could go wrong?
+
+1. response falls as enrollment increases
+2. adverse events limit dosing
+3. competitors move faster
+4. trial design produces ambiguous data
+5. financing requirements increase
+
+This teaches investors how biotech uncertainty works.
+
+---
+
+# 22. DRUG PROFILE
+
+Every clinical asset should have:
+
+Drug
+
+Company
+
+Target
+
+Modality
+
+Disease
+
+Stage
+
+Trials
+
+Mechanism of action
+
+Clinical evidence
+
+Safety
+
+Competitors
+
+Upcoming milestones
+
+Sources
+
+---
+
+# 23. BIOLOGY EXPLANATION
+
+Create explanation depth settings:
+
+## Simple
+
+For general investors.
+
+Example:
+
+> KRAS is a protein that helps regulate cell growth. Certain KRAS mutations can leave this growth signal permanently activated, helping cancer cells proliferate.
+
+## Detailed
+
+Explain:
+
+* pathway
+* mutation
+* molecular effect
+* therapeutic rationale
+
+Do not overwhelm users by default.
+
+---
+
+# 24. THE MOST IMPORTANT FEATURE — READOUT LENS
+
+The V1 killer feature is:
+
+# Analyze a Clinical Readout
+
+Input:
+
+User pastes:
+
+* press release text
+* conference abstract text
+* trial announcement
+
+URL ingestion can be added after text ingestion works reliably.
+
+Do not begin with arbitrary web crawling.
+
+---
+
+# 25. READOUT RESULT PAGE
+
+The result must contain:
+
+## Bottom Line
+
+2–4 sentences.
+
+Never overly certain.
+
+---
+
+## Drug
+
+Name
+
+---
+
+## Company
+
+Name + ticker
+
+---
+
+## Target
+
+Biological target
+
+---
+
+## Modality
+
+Drug type
+
+---
+
+## Disease
+
+Indication
+
+---
+
+## Trial Phase
+
+I / I-II / II / III
+
+---
+
+## Trial Design
+
+Randomized?
+
+Blinded?
+
+Controlled?
+
+Single-arm?
+
+Number of patients?
+
+Dose escalation?
+
+Dose expansion?
+
+---
+
+## Primary Endpoint
+
+Exact endpoint.
+
+---
+
+## Did It Meet the Primary Endpoint?
+
+Possible outputs:
+
+### Yes — as reported
+
+### No — as reported
+
+### Not yet evaluable
+
+### Primary endpoint not clearly reported
+
+Never infer “met” without evidence.
+
+---
+
+## Effect Size
+
+Show actual result.
+
+---
+
+## Confidence Interval
+
+If reported.
+
+---
+
+## P-value
+
+If reported.
+
+---
+
+## Statistical Interpretation
+
+Separate section.
+
+---
+
+## Clinical Interpretation
+
+Separate section.
+
+---
+
+## Safety
+
+Adverse events.
+
+Dose reductions.
+
+Discontinuations.
+
+Deaths if relevant.
+
+---
+
+## What Is Missing?
+
+Critical unanswered questions.
+
+---
+
+## Competition
+
+Similar therapies.
+
+---
+
+## What Happens Next?
+
+Probable next clinical-development stage.
+
+---
+
+## Investor Relevance
+
+Explain why the event may matter to the company's development story.
+
+---
+
+## Sources
+
+Mandatory.
+
+---
+
+# 26. STATISTICAL ENGINE — ABSOLUTE RULE
+
+The application must never reduce clinical-trial analysis to:
+
+> p < 0.05 = success.
+
+Implement a structured statistics interpretation layer.
+
+Statistics must be treated as one component of evidence.
+
+---
+
+# 27. IDENTIFY THE TYPE OF ENDPOINT
+
+Classify endpoints.
+
+## Time-to-event
+
+Examples:
+
+* overall survival
+* progression-free survival
+* event-free survival
+
+Important quantities:
+
+median survival
+
+hazard ratio
+
+95% confidence interval
+
+p-value
+
+follow-up
+
+number of events
+
+---
+
+## Binary
+
+Examples:
+
+* objective response rate
+* complete response
+* remission rate
+
+Important quantities:
+
+responders
+
+denominator
+
+percentage
+
+confidence interval
+
+control percentage
+
+absolute difference
+
+---
+
+## Continuous
+
+Examples:
+
+* change in disease score
+* biomarker level
+* symptom score
+
+Important quantities:
+
+baseline
+
+change
+
+between-group difference
+
+confidence interval
+
+statistical test
+
+---
+
+# 28. PRIMARY VS SECONDARY ENDPOINTS
+
+Always identify:
+
+### Primary endpoint
+
+### Key secondary endpoints
+
+### Exploratory endpoints
+
+Do not treat them equally.
+
+The primary endpoint should carry the greatest inferential weight.
+
+If the primary endpoint fails:
+
+Do not portray positive secondary endpoints as equivalent to a successful trial unless the statistical testing plan supports that interpretation.
+
+Example:
+
+> “The primary endpoint was not met. Positive findings in secondary outcomes may still be scientifically interesting but should be interpreted cautiously.”
+
+---
+
+# 29. MULTIPLICITY
+
+Multiple testing increases false-positive risk.
+
+Therefore:
+
+If several endpoints are tested:
+
+attempt to determine whether the company reported:
+
+* hierarchical testing
+* alpha allocation
+* multiplicity adjustment
+* prespecified testing sequence
+
+If unclear:
+
+label it.
+
+Example:
+
+> “The release reports nominal significance for this secondary endpoint, but BioLens could not verify whether the analysis was protected by the study's multiplicity-control procedure.”
+
+This is extremely important.
+
+---
+
+# 30. INTERIM ANALYSES
+
+Interim trials may use significance thresholds different from 0.05.
+
+Never automatically judge an interim result by:
+
+`p < 0.05`
+
+Instead:
+
+look for:
+
+* prespecified interim boundary
+* alpha spending
+* statistical-analysis plan description
+
+If absent:
+
+state:
+
+> “The appropriate interim significance threshold was not available from the reviewed sources.”
+
+---
+
+# 31. CONFIDENCE INTERVALS
+
+Confidence intervals are important.
+
+Do not show a point estimate alone when CI is reported.
+
+Example:
+
+HR:
+
+0.72
+
+95% CI:
+
+0.55–0.94
+
+Explain:
+
+> The estimated treatment effect favors the experimental arm, but the range of plausible effects is reflected by the confidence interval.
+
+Do not imply:
+
+> “There is a 95% probability that the true hazard ratio lies within the interval.”
+
+Avoid that common misinterpretation.
+
+---
+
+# 32. EFFECT SIZE VS STATISTICAL SIGNIFICANCE
+
+Always separate:
+
+## Statistical evidence
+
+from:
+
+## Magnitude of clinical benefit
+
+Example:
+
+A trial may show:
+
+p = 0.01
+
+but:
+
+PFS improvement only 0.8 months.
+
+BioLens should say:
+
+> “The difference is statistically significant as reported, but the absolute clinical benefit appears modest and should be weighed against toxicity, quality of life, and existing treatments.”
+
+Conversely:
+
+A small early trial could show:
+
+large effect
+
+but wide uncertainty.
+
+BioLens should say:
+
+> “The observed response is large, but the small sample size creates substantial uncertainty around the true effect.”
+
+---
+
+# 33. HAZARD RATIO INTERPRETATION
+
+For time-to-event outcomes:
+
+HR < 1 generally favors treatment if the event is undesirable.
+
+But explain carefully.
+
+Example:
+
+HR = 0.70
+
+Use:
+
+> “The treatment group experienced an estimated 30% lower instantaneous hazard of progression or death over the analyzed period.”
+
+Do not say:
+
+> “30% of patients were saved.”
+
+Do not say:
+
+> “Patients lived 30% longer.”
+
+Those are incorrect interpretations.
+
+---
+
+# 34. OBJECTIVE RESPONSE RATE
+
+For ORR:
+
+always retrieve:
+
+responders
+
+evaluable population
+
+confidence interval if available
+
+complete versus partial responses
+
+follow-up
+
+Example:
+
+12 responses / 20 evaluable patients
+
+ORR:
+
+60%
+
+But display:
+
+> **12 of 20 evaluable patients**
+
+because a percentage without denominator can be misleading.
+
+---
+
+# 35. DURATION OF RESPONSE
+
+If ORR is impressive but follow-up is short:
+
+BioLens should flag:
+
+> “The response rate is encouraging, but durability remains uncertain because median follow-up is limited.”
+
+If median DOR is not reached:
+
+Do not interpret this automatically as extraordinary efficacy.
+
+Explain:
+
+> “Median duration of response has not yet been reached, meaning more than half of responding patients remained in response at the analysis cutoff. Longer follow-up is needed.”
+
+---
+
+# 36. SINGLE-ARM TRIALS
+
+This is extremely important.
+
+For a single-arm trial:
+
+Never present efficacy as though the treatment beat a control arm.
+
+Use:
+
+> “This trial does not contain a concurrent control group.”
+
+Historical comparison can be shown only with an explicit warning:
+
+> “Cross-trial comparison is approximate because patient populations, eligibility, assessment timing, and trial methods may differ.”
+
+---
+
+# 37. CROSS-TRIAL COMPARISON
+
+Never simply rank:
+
+Drug A ORR 60%
+
+Drug B ORR 45%
+
+therefore A is better.
+
+Before comparing, show differences in:
+
+* treatment line
+* patient biomarkers
+* prior therapies
+* sample size
+* endpoint definitions
+* follow-up
+* trial phase
+* dosage
+* combination therapy
+* independent versus investigator review
+
+Label comparisons:
+
+### Directionally informative
+
+rather than:
+
+### Head-to-head evidence
+
+unless it genuinely is head-to-head.
+
+---
+
+# 38. EARLY-STAGE DATA
+
+Phase I datasets often have:
+
+small n
+
+multiple doses
+
+selected evaluable populations
+
+short follow-up
+
+frequent updates.
+
+Therefore early data should receive labels such as:
+
+# Early signal
+
+rather than:
+
+# Proven efficacy
+
+---
+
+# 39. STATISTICAL INTERPRETATION CLASSIFICATION
+
+Create four evidence interpretations:
+
+## 1. Confirmatory Positive
+
+Requirements generally include:
+
+* prespecified primary endpoint met
+* appropriate statistical framework
+* adequate trial design
+* relevant uncertainty reported
+
+Do not apply casually.
+
+---
+
+## 2. Encouraging Signal
+
+Typical for:
+
+* early phase
+* single-arm trial
+* strong biological activity
+* limited sample size
+
+---
+
+## 3. Inconclusive
+
+Examples:
+
+* endpoint unclear
+* insufficient follow-up
+* small cohort
+* conflicting results
+* missing statistical context
+
+---
+
+## 4. Negative on Primary Endpoint
+
+Primary endpoint not met.
+
+Secondary signals can still be displayed separately.
+
+---
+
+# 40. NEVER INVENT STATISTICS
+
+If a press release provides:
+
+ORR
+
+but no confidence interval,
+
+do not ask the LLM to invent one.
+
+If raw counts are available and a mathematically valid interval can be computed deterministically, the backend may calculate one.
+
+But clearly label:
+
+### BioLens calculated
+
+versus:
+
+### Company reported
+
+Every number needs provenance.
+
+---
+
+# 41. DETERMINISTIC STATISTICS BEFORE LLM
+
+Where possible:
+
+Use Python functions to:
+
+* calculate percentages
+* calculate absolute differences
+* validate ratios
+* parse confidence intervals
+* classify sample size
+* compare reported thresholds
+
+The LLM should explain the results.
+
+It should not perform critical arithmetic if code can do it.
+
+---
+
+# 42. FACT VS INTERPRETATION
+
+Every BioLens output should internally distinguish:
+
+## FACT
+
+Directly supported by source.
+
+Example:
+
+> Trial enrolled 142 participants.
+
+## CALCULATED
+
+Derived mathematically.
+
+Example:
+
+> 18/30 = 60% response rate.
+
+## INTERPRETATION
+
+Analytical conclusion.
+
+Example:
+
+> Response appears encouraging for an early-stage cohort.
+
+## SPECULATION
+
+Scenario.
+
+Example:
+
+> Positive larger-cohort data could increase partnership interest.
+
+These should never be blurred.
+
+---
+
+# 43. SOURCE HIERARCHY
+
+Use sources in this priority order.
+
+## Tier 1
+
+ClinicalTrials.gov
+
+FDA
+
+SEC filings
+
+peer-reviewed primary trial publication
+
+conference abstract
+
+company primary-source clinical presentation
+
+company press release
+
+## Tier 2
+
+high-quality review articles
+
+reputable scientific databases
+
+## Tier 3
+
+news media
+
+analyst commentary
+
+Only use Tier 3 for context.
+
+Never use news articles as the canonical source for clinical statistics if primary data exist.
+
+---
+
+# 44. THE BIG DATA PROBLEM — DO NOT INGEST EVERYTHING
+
+This is a critical architectural requirement.
+
+BioLens does **not** need every biomedical paper in its database.
+
+Do not:
+
+* download all PubMed
+* embed millions of abstracts
+* store every FDA record
+* crawl the entire internet
+* index every biotechnology company
+
+That is unnecessary and would destroy the MVP timeline.
+
+Instead implement:
+
+# On-demand retrieval + aggressive caching.
+
+---
+
+# 45. RETRIEVAL FLOW
+
+Suppose a user analyzes:
+
+`ABC-101 Phase II results`
+
+Step 1:
+
+Extract entities:
+
+company
+
+drug
+
+target
+
+disease
+
+NCT ID if present
+
+Step 2:
+
+Query ClinicalTrials.gov.
+
+Step 3:
+
+Identify canonical trial.
+
+Step 4:
+
+Query PubMed specifically for:
+
+NCT ID
+
+drug name
+
+drug alias
+
+target + indication
+
+Step 5:
+
+Retrieve only the most relevant papers.
+
+Initially:
+
+maximum ~10–20 candidates.
+
+Step 6:
+
+Rerank them.
+
+Highest priority:
+
+exact NCT ID match
+
+exact drug match
+
+trial publication
+
+most relevant disease
+
+recent relevant study
+
+Step 7:
+
+Use only approximately:
+
+3–8 important sources
+
+for the final analysis.
+
+This is enough for the majority of use cases.
+
+---
+
+# 46. DO NOT SUMMARIZE PAPERS THAT DO NOT MATTER
+
+A paper is relevant if it helps answer:
+
+* what is the target?
+* why is it biologically important?
+* what does the drug do?
+* what previous evidence exists?
+* what does the current trial show?
+* what is the competitive benchmark?
+
+Anything else is likely noise.
+
+---
+
+# 47. PAPER STORAGE
+
+Store:
+
+PMID
+
+title
+
+authors
+
+journal
+
+publication date
+
+abstract when legally/publicly available
+
+DOI
+
+retrieval date
+
+relevance tags
+
+summary generated from permitted content
+
+Do not unnecessarily store full copyrighted papers.
+
+Use PubMed/PMC metadata and accessible content appropriately.
+
+---
+
+# 48. CACHE RESEARCH PACKAGES
+
+Once BioLens analyzes:
+
+Drug X
+
+create a cached:
+
+# Drug Research Package
+
+containing:
+
+drug aliases
+
+target
+
+mechanism
+
+company
+
+trials
+
+key publications
+
+known competitors
+
+This package can be reused.
+
+The next user query about Drug X should not trigger the entire research process again.
+
+---
+
+# 49. CACHE COMPANY PACKAGES
+
+Likewise create:
+
+# Company Research Package
+
+containing:
+
+ticker
+
+CIK
+
+pipeline
+
+drugs
+
+targets
+
+clinical trials
+
+recent filings
+
+recent major events
+
+This drastically reduces repeated API usage.
+
+---
+
+# 50. SOURCE FRESHNESS
+
+Each record needs:
+
+`last_verified_at`
+
+Clinical data changes.
+
+Company pipelines change.
+
+Trials update.
+
+The system should know when information is stale.
+
+Suggested initial policy:
+
+ClinicalTrials records:
+
+refresh every few days if actively followed.
+
+Company profiles:
+
+refresh weekly.
+
+Static biological explanations:
+
+refresh rarely.
+
+User-triggered readouts:
+
+always verify key trial facts before presenting final analysis.
+
+---
+
+# 51. DO NOT BUILD A FULL NEWS CRAWLER IN MONTH ONE
+
+Very important.
+
+V1 Home feed can be populated using:
+
+* manually selected primary-source events
+* configured company investor relations feeds
+* SEC events
+* trial updates
+
+The founder/admin should be able to submit:
+
+Company
+
+Headline
+
+Source
+
+Press release text
+
+Then BioLens processes it automatically.
+
+This allows the product to feel alive without solving internet-scale event ingestion.
+
+Automate discovery later.
+
+---
+
+# 52. EMERGING COMPANY DISCOVERY ENGINE
+
+Eventually BioLens should discover companies automatically.
+
+But V1 should have a simpler system.
+
+Build an internal table:
+
+`companies`
+
+and tag:
+
+`emerging = true`
+
+Companies can be added manually.
+
+Later the engine can identify candidates using signals such as:
+
+* new Phase I initiation
+* first human efficacy data
+* trial advancement
+* new partnership
+* FDA designation
+* unusually rapid pipeline activity
+* high publication activity
+* new clinical asset
+* new SEC filing
+* company recently became public
+
+This could eventually power:
+
+# New on BioLens
+
+and:
+
+# Companies to research
+
+Again:
+
+Do not frame these as stocks to buy.
+
+They are:
+
+> **biotechnology companies worth understanding.**
+
+---
+
+# 53. FRONTIER SCORE
+
+Create a score if useful, but call it:
+
+# Frontier Score
+
+NOT:
+
+Investment Score.
+
+The Frontier Score measures how interesting the company's recent biotechnology activity is.
+
+Possible components:
+
+### Clinical Momentum — 30%
+
+Recent advancement or data.
+
+### Scientific Novelty — 20%
+
+Novel target/modality.
+
+### Evidence Maturity — 20%
+
+Strength/maturity of available human evidence.
+
+### Catalyst Activity — 15%
+
+Upcoming meaningful events.
+
+### Strategic Validation — 15%
+
+Partnerships/licensing/large-pharma involvement.
+
+Do not include:
+
+stock-price target.
+
+Do not imply:
+
+higher score = higher future return.
+
+Explain:
+
+> “Frontier Score ranks biotechnology research activity, not investment attractiveness.”
+
+---
+
+# 54. DISCOVERY CARD
+
+Example:
+
+---
+
+# Cardiff Oncology
+
+CRDF
+
+**Frontier Score: 81**
+
+### Why it surfaced
+
+Phase II colorectal cancer results
+
+Lead program advancing toward registrational development
+
+Targets PLK1
+
+### BioLens in one sentence
+
+Cardiff is developing onvansertib as a combination therapy for RAS-mutated metastatic colorectal cancer.
+
+### Key risk
+
+Clinical thesis remains heavily dependent on one lead asset.
+
+[Explore]
+
+---
+
+This accomplishes the user's goal of exposing smaller companies without pretending the application has discovered a guaranteed investment.
+
+---
+
+# 55. SEARCH
+
+Universal search should accept:
+
+ticker
+
+company
+
+drug
+
+target
+
+disease
+
+NCT number
+
+Examples:
+
+JANX
+
+Janux
+
+KRAS
+
+NCT01234567
+
+onvansertib
+
+Search results categories:
+
+Companies
+
+Drugs
+
+Targets
+
+Trials
+
+---
+
+# 56. WATCHLIST
+
+Users can follow:
+
+companies
+
+drugs
+
+targets
+
+Initial watchlist does not require real-time push notifications.
+
+Store selections.
+
+Later:
+
+new clinical readout
+
+new trial
+
+new FDA event
+
+new deal
+
+could trigger alerts.
+
+---
+
+# 57. ASK BIOLENS
+
+Each analysis page includes:
+
+# Ask BioLens
+
+Questions must be answered from the current research package.
+
+Example questions:
+
+> Why is this target important?
+
+> How strong is this trial?
+
+> Why does sample size matter?
+
+> Who competes with this drug?
+
+> What is the biggest remaining uncertainty?
+
+> Explain the mechanism more simply.
+
+> What would Phase III need to show?
+
+The model should receive retrieved sources.
+
+If evidence is insufficient:
+
+say:
+
+> “BioLens does not have enough verified information to answer this reliably.”
+
+Never fill gaps by hallucinating.
+
+---
+
+# 58. DATABASE SCHEMA
+
+Implement approximately these core entities.
+
+## companies
+
+id
+
+name
+
+ticker
+
+cik
+
+description
+
+company_stage
+
+therapeutic_focus
+
+emerging_flag
+
+website
+
+ir_url
+
+last_verified_at
+
+---
+
+## drugs
+
+id
+
+company_id
+
+name
+
+aliases
+
+target_id
+
+modality
+
+stage
+
+description
+
+---
+
+## targets
+
+id
+
+symbol
+
+full_name
+
+simple_explanation
+
+detailed_explanation
+
+---
+
+## indications
+
+id
+
+name
+
+category
+
+---
+
+## drug_indications
+
+drug_id
+
+indication_id
+
+stage
+
+---
+
+## trials
+
+id
+
+nct_id
+
+drug_id
+
+phase
+
+status
+
+enrollment
+
+design
+
+primary_endpoint
+
+secondary_endpoints
+
+start_date
+
+completion_date
+
+last_verified_at
+
+---
+
+## trial_results
+
+id
+
+trial_id
+
+source_id
+
+data_cutoff
+
+sample_size
+
+evaluable_n
+
+endpoint_type
+
+endpoint_name
+
+experimental_value
+
+control_value
+
+effect_measure
+
+effect_value
+
+ci_low
+
+ci_high
+
+p_value
+
+company_reported
+
+---
+
+## sources
+
+id
+
+source_type
+
+title
+
+publisher
+
+url
+
+publication_date
+
+retrieved_at
+
+primary_source
+
+---
+
+## events
+
+id
+
+company_id
+
+drug_id
+
+event_type
+
+event_date
+
+headline
+
+summary
+
+importance
+
+source_id
+
+---
+
+## analyses
+
+id
+
+event_id
+
+bottom_line
+
+scientific_interpretation
+
+clinical_interpretation
+
+statistical_interpretation
+
+commercial_context
+
+unknowns
+
+confidence
+
+created_at
+
+---
+
+## watchlists
+
+user_id
+
+entity_type
+
+entity_id
+
+---
+
+# 59. API ENDPOINTS
+
+Backend should expose approximately:
+
+`GET /companies`
+
+`GET /companies/{id}`
+
+`GET /companies/{id}/pipeline`
+
+`GET /companies/{id}/events`
+
+`GET /drugs/{id}`
+
+`GET /targets/{id}`
+
+`GET /trials/{nct_id}`
+
+`POST /analyze/readout`
+
+`GET /analyses/{id}`
+
+`GET /feed/frontier`
+
+`GET /discover/emerging`
+
+`POST /watchlist`
+
+`DELETE /watchlist/{id}`
+
+`POST /ask`
+
+---
+
+# 60. ANALYSIS PIPELINE
+
+`POST /analyze/readout`
+
+should create an analysis job.
+
+Input:
+
+plain text initially.
+
+Later:
+
+URL.
+
+Pipeline:
+
+### 1. Parse input
+
+↓
+
+### 2. Extract entities
+
+↓
+
+### 3. Match/create company
+
+↓
+
+### 4. Match drug
+
+↓
+
+### 5. Match trial/NCT ID
+
+↓
+
+### 6. Retrieve ClinicalTrials data
+
+↓
+
+### 7. Retrieve targeted PubMed records
+
+↓
+
+### 8. Retrieve cached target information
+
+↓
+
+### 9. Extract reported trial statistics
+
+↓
+
+### 10. Run deterministic validation
+
+↓
+
+### 11. Generate interpretation using LLM
+
+↓
+
+### 12. Validate factual claims against structured data
+
+↓
+
+### 13. Save analysis
+
+↓
+
+### 14. Return structured result to app
+
+---
+
+# 61. USE STRUCTURED JSON FROM THE MODEL
+
+Never request arbitrary prose first.
+
+The LLM should return structured fields such as:
+
+`bottom_line`
+
+`drug`
+
+`target`
+
+`indication`
+
+`trial_design`
+
+`primary_endpoint`
+
+`primary_endpoint_met`
+
+`statistical_interpretation`
+
+`clinical_interpretation`
+
+`safety_interpretation`
+
+`strengths`
+
+`limitations`
+
+`missing_information`
+
+`competitors`
+
+`next_steps`
+
+`investor_relevance`
+
+`source_claims`
+
+Validate JSON with Pydantic.
+
+Reject malformed output.
+
+Retry with repair prompt if necessary.
+
+---
+
+# 62. SOURCE-CITED CLAIMS
+
+Each generated factual claim should map to source IDs.
+
+Example internal structure:
+
+```json
+{
+  "claim": "The trial enrolled 120 participants.",
+  "source_ids": ["clinicaltrials_nct123"]
+}
+```
+
+Interpretations should be labeled separately.
+
+This should eventually enable the mobile UI to show:
+
+**Source**
+
+under important statements.
+
+---
+
+# 63. CONFIDENCE SYSTEM
+
+Each section gets:
+
+### High confidence
+
+strong primary data.
+
+### Moderate confidence
+
+reasonable but incomplete evidence.
+
+### Low confidence
+
+limited or ambiguous evidence.
+
+Do not create fake numerical probabilities like:
+
+> 83.6% confidence
+
+unless there is a mathematically justified model.
+
+Use categorical labels.
+
+---
+
+# 64. UI STYLE
+
+BioLens should feel:
+
+premium
+
+scientific
+
+minimal
+
+intelligent
+
+modern
+
+not clinical/hospital-like.
+
+Avoid:
+
+DNA helix clip art.
+
+Microscope icons everywhere.
+
+Neon “AI” gradients.
+
+Stock-trading casino aesthetics.
+
+Aim closer to:
+
+high-end financial app
+
+*
+
+modern scientific journal.
+
+---
+
+# 65. INFORMATION HIERARCHY
+
+Every page should lead with:
+
+# What matters?
+
+Then allow depth.
+
+Never dump everything onto the user immediately.
+
+Example:
+
+### Bottom line
+
+↓
+
+### Why it matters
+
+↓
+
+### Data
+
+↓
+
+### Biology
+
+↓
+
+### Competition
+
+↓
+
+### Sources
+
+---
+
+# 66. COLOR USE
+
+Do not use:
+
+green = buy
+
+red = sell.
+
+Colors can indicate:
+
+positive endpoint
+
+negative endpoint
+
+uncertain evidence
+
+but wording must remain precise.
+
+For example:
+
+### Primary endpoint met
+
+not:
+
+### BULLISH
+
+---
+
+# 67. ONBOARDING
+
+Three screens maximum.
+
+## Screen 1
+
+# The frontier of biotech, explained.
+
+Follow emerging biotechnology before it becomes obvious.
+
+---
+
+## Screen 2
+
+# Understand the science.
+
+Clinical trials, drug mechanisms, competition, and uncertainty translated into plain English.
+
+---
+
+## Screen 3
+
+# Discover what's next.
+
+Follow emerging companies, therapies, and targets.
+
+Then:
+
+[Get Started]
+
+---
+
+# 68. EXAMPLE FIRST EXPERIENCE
+
+Ask user:
+
+# What interests you?
+
+Choose:
+
+Cancer
+
+Immunotherapy
+
+Precision medicine
+
+Protein degradation
+
+Biotech investing
+
+Drug development
+
+Then generate initial watchlist suggestions.
+
+Do not ask 15 onboarding questions.
+
+---
+
+# 69. BUSINESS POSITIONING
+
+BioLens should not market itself as:
+
+> AI biotech stock picks.
+
+Instead:
+
+# “The intelligence layer between biotechnology and investors.”
+
+or:
+
+# “Understand the science moving biotech markets.”
+
+or:
+
+# “Discover emerging biotech before the story becomes simple.”
+
+Preferred marketing statement:
+
+> **BioLens surfaces emerging biotechnology companies and translates complex clinical and scientific developments into clear investor-oriented research.**
+
+---
+
+# 70. SMALL COMPANIES ARE A CORE FEATURE
+
+Large platforms tend naturally to focus on:
+
+Lilly
+
+Pfizer
+
+Merck
+
+Amgen
+
+BioLens should deliberately allocate editorial and algorithmic attention to:
+
+* early clinical-stage companies
+* new modalities
+* new targets
+* recently public biotechs
+* overlooked clinical readouts
+* technologies validated through partnerships
+* companies entering human trials
+
+One of the product's most important user experiences should be:
+
+> “I had never heard of this company before BioLens.”
+
+Followed by:
+
+> “Now I understand exactly what it is developing and why the science is interesting.”
+
+---
+
+# 71. DO NOT PROMOTE BAD COMPANIES SIMPLY BECAUSE THEY ARE SMALL
+
+Discovery must still be evidence-based.
+
+A company should surface because:
+
+interesting science
+
+clinical progress
+
+new evidence
+
+strategic activity
+
+not because:
+
+low market cap
+
+large stock move
+
+social-media attention.
+
+---
+
+# 72. PUBLIC COMPANIES FIRST
+
+For V1:
+
+focus primarily on publicly traded companies.
+
+Reasons:
+
+SEC disclosures
+
+greater transparency
+
+public investor materials
+
+accessible financial information
+
+clear ticker identity
+
+Large private biotech companies can be added later.
+
+---
+
+# 73. FINANCIAL CONTEXT
+
+Company profiles may eventually show:
+
+cash
+
+quarterly operating burn
+
+estimated runway
+
+revenue
+
+market capitalization
+
+enterprise value
+
+But do not make these requirements for the first working prototype.
+
+The first business information to prioritize is:
+
+pipeline dependence
+
+partnerships
+
+licensing
+
+acquisitions
+
+major development costs
+
+upcoming catalysts
+
+---
+
+# 74. CASH RUNWAY
+
+When SEC data are available:
+
+Cash runway can be approximated as:
+
+cash + marketable securities
+
+divided by:
+
+recent operating cash burn
+
+But label clearly:
+
+# Approximate runway
+
+Do not present it as management guidance unless management specifically provided that guidance.
+
+Display:
+
+### Company guidance
+
+separately from:
+
+### BioLens estimate
+
+---
+
+# 75. FRONTIER FEED SEED CONTENT
+
+Before launch manually create approximately:
+
+30–50 high-quality analyses.
+
+This solves the cold-start problem.
+
+Do not wait for full automation.
+
+The first beta user should see a populated application.
+
+Include:
+
+early-stage clinical results
+
+Phase II readouts
+
+Phase III results
+
+licensing deals
+
+interesting emerging technologies
+
+failed trials
+
+Negative results are important.
+
+BioLens should not become promotional.
+
+---
+
+# 76. 30-DAY BUILD PLAN
+
+## DAYS 1–3
+
+Create repository.
+
+Set up:
+
+Expo app
+
+FastAPI
+
+Postgres/Supabase
+
+environment variables
+
+CI/linting
+
+basic test infrastructure
+
+Create static mock screens first.
+
+Do not integrate AI yet.
+
+---
+
+## DAYS 4–6
+
+Build navigation:
+
+Home
+
+Discover
+
+Search
+
+Watchlist
+
+Profile
+
+Create reusable:
+
+CompanyCard
+
+EventCard
+
+EvidenceBadge
+
+SourceChip
+
+DrugCard
+
+TrialMetric
+
+---
+
+## DAYS 7–9
+
+Create database schema.
+
+Seed:
+
+10 companies
+
+20 drugs
+
+10 targets
+
+20 trials
+
+using verified data.
+
+Build company pages.
+
+---
+
+## DAYS 10–12
+
+Integrate ClinicalTrials.gov.
+
+Implement:
+
+trial lookup by NCT ID
+
+company/sponsor search
+
+drug/intervention search
+
+cache API results.
+
+Tests required.
+
+---
+
+## DAYS 13–14
+
+Integrate PubMed.
+
+Implement targeted search.
+
+Do not perform broad ingestion.
+
+Add caching.
+
+Respect API rate limits.
+
+---
+
+## DAYS 15–17
+
+Build Readout ingestion.
+
+Input:
+
+plain text.
+
+Extract:
+
+company
+
+drug
+
+target
+
+trial
+
+phase
+
+indication
+
+statistics.
+
+Return JSON.
+
+---
+
+## DAYS 18–20
+
+Build deterministic statistics parser.
+
+Implement:
+
+endpoint classification
+
+sample-size extraction
+
+ORR denominator display
+
+HR handling
+
+CI validation
+
+p-value storage
+
+primary/secondary endpoint labels
+
+single-arm warnings
+
+---
+
+## DAYS 21–22
+
+Build interpretation prompts.
+
+Model must distinguish:
+
+fact
+
+calculation
+
+interpretation
+
+speculation.
+
+Add citation mapping.
+
+---
+
+## DAYS 23–24
+
+Build Discover.
+
+Seed approximately:
+
+20 emerging companies.
+
+Implement:
+
+filters
+
+Frontier Score
+
+explanations.
+
+---
+
+## DAY 25
+
+Build watchlist.
+
+Save:
+
+companies
+
+drugs
+
+targets.
+
+---
+
+## DAY 26
+
+Add Ask BioLens.
+
+Only RAG over current research package.
+
+---
+
+## DAY 27
+
+Seed 30–50 event analyses.
+
+Focus on quality.
+
+---
+
+## DAY 28
+
+User testing.
+
+Have approximately:
+
+10 people
+
+use the app without explanation.
+
+Record where they get confused.
+
+---
+
+## DAY 29
+
+Fix onboarding and comprehension problems.
+
+Do not add major new features.
+
+---
+
+## DAY 30
+
+Build TestFlight beta.
+
+Create:
+
+app icon
+
+screenshots
+
+privacy copy
+
+disclaimer
+
+beta feedback mechanism.
+
+---
+
+# 77. WHAT NOT TO BUILD DURING THESE 30 DAYS
+
+No Android-specific optimization.
+
+No web dashboard.
+
+No portfolio synchronization.
+
+No brokerage integration.
+
+No trading.
+
+No options analysis.
+
+No price targets.
+
+No social network.
+
+No comments.
+
+No chat rooms.
+
+No full-text PubMed ingestion.
+
+No 10,000-company database.
+
+No complicated machine-learning ranking model.
+
+No proprietary prediction model.
+
+No automated internet-wide crawler.
+
+No patent database.
+
+No insurance data.
+
+No personalized medical advice.
+
+No complex subscription billing until people actually use the product.
+
+---
+
+# 78. MVP SUCCESS CRITERIA
+
+At the end of 30 days BioLens succeeds if:
+
+### Product
+
+Working mobile application exists.
+
+### Data
+
+20–30 emerging biotech companies are represented.
+
+### Analysis
+
+Users can paste clinical-trial text and receive a structured analysis.
+
+### Reliability
+
+Important statements display sources.
+
+### Discovery
+
+Users can discover companies they did not already know.
+
+### Engagement
+
+Users can follow companies.
+
+### Validation
+
+At least 10–20 target users have tested the app.
+
+Better:
+
+50 beta users.
+
+Even better:
+
+25%+ of testers return more than once.
+
+Do not judge month-one success primarily by revenue.
+
+---
+
+# 79. THE MOST IMPORTANT TEST
+
+Ask beta users:
+
+> **“Did BioLens show you a biotechnology company or therapy you had never heard of and make you understand why it mattered?”**
+
+If yes:
+
+the core discovery thesis is working.
+
+Also ask:
+
+> **“Would understanding this without BioLens have required significantly more research?”**
+
+If yes:
+
+the simplification thesis is working.
+
+---
+
+# 80. FUTURE VERSION — DO NOT BUILD YET
+
+Once mobile V1 works:
+
+### V2
+
+automatic company-news ingestion
+
+push catalyst notifications
+
+broader company database
+
+### V3
+
+immunology
+
+metabolic disease
+
+neurology
+
+### V4
+
+web version
+
+shareable BioLens reports
+
+### V5
+
+professional subscriptions
+
+portfolio/watchlist intelligence
+
+deal tracking
+
+deep competitive landscapes
+
+### V6
+
+private biotechnology discovery
+
+venture-capital tools
+
+academic spinout tracking
+
+---
+
+# 81. LONG-TERM VISION
+
+BioLens can eventually answer:
+
+> What emerging companies are working on the most interesting biotechnology?
+
+> What clinical evidence supports them?
+
+> How strong is that evidence?
+
+> Who are their competitors?
+
+> Which targets are becoming crowded?
+
+> Which modalities are gaining momentum?
+
+> Which companies have upcoming catalysts?
+
+> Which early technologies are receiving pharmaceutical validation?
+
+This transforms BioLens from:
+
+**trial summarizer**
+
+into:
+
+# **a discovery engine for the biotechnology frontier.**
+
+---
+
+# 82. THE CORE DATA MOAT
+
+The moat is not:
+
+AI summarization.
+
+The moat is the structured relationship graph:
+
+Company
+
+↓
+
+Drug
+
+↓
+
+Target
+
+↓
+
+Modality
+
+↓
+
+Disease
+
+↓
+
+Trial
+
+↓
+
+Endpoint
+
+↓
+
+Result
+
+↓
+
+Competitor
+
+↓
+
+Deal
+
+↓
+
+Clinical milestone
+
+Over time, BioLens understands how biotechnology entities relate.
+
+AI then makes that graph understandable.
+
+---
+
+# 83. FINAL PRODUCT PRINCIPLE
+
+Whenever deciding whether to add a feature, ask:
+
+> **Does this help someone discover important biotechnology or understand it faster?**
+
+If no:
+
+do not build it.
+
+The ideal BioLens user should eventually say:
+
+> **“I use BioLens because it shows me emerging biotech companies before I would otherwise encounter them, and it gives me enough scientific context to understand what I'm looking at.”**
+
+That is the product.
+
+---
+
+# 84. CLAUDE CODE OPERATING INSTRUCTIONS
+
+When implementing this project:
+
+1. Read this entire document before writing code.
+2. Create a `PLAN.md`.
+3. Break implementation into the 30-day phases above.
+4. Create a task checklist.
+5. Do not implement future features prematurely.
+6. Prefer simple, maintainable architecture.
+7. Add tests for data parsers and statistics.
+8. Never silently fabricate missing information.
+9. Preserve provenance for every clinical number.
+10. Use primary sources whenever possible.
+11. Cache external API responses.
+12. Keep LLM prompts version-controlled.
+13. Store model outputs separately from source facts.
+14. Validate model JSON.
+15. Log retrieval failures.
+16. Build graceful “unknown” states.
+17. Do not invent results to make the demo appear complete.
+18. Build mock data only when clearly flagged as demo data.
+19. Optimize for a working beta, not perfect infrastructure.
+20. Do not create the web frontend until specifically instructed.
+
+---
+
+# FINAL NORTH STAR
+
+## BioLens
+
+### **The frontier of biotech, explained.**
+
+A mobile biotechnology intelligence platform that helps investors discover emerging companies and understand the scientific, clinical, statistical, and commercial meaning of the innovations they are developing.
+
+The initial product is not trying to predict which biotech stock will win.
+
+It is trying to make an extremely difficult industry **understandable enough that more people can intelligently research it.**
+
+That is the mission.

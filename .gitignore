@@ -1,0 +1,21 @@
+# --- app (Expo) ---
+app/node_modules/
+app/.expo/
+app/dist/
+app/.env.local
+app/*.log
+
+# --- api (FastAPI) ---
+api/.venv/
+api/__pycache__/
+api/**/__pycache__/
+api/.pytest_cache/
+api/.ruff_cache/
+api/.env
+
+# --- general ---
+.DS_Store
+*.pem
+.claude/
+CLAUDE.md
+AGENTS.md
