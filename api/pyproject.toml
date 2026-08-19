@@ -5,6 +5,11 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Long descriptive strings (target/company/drug/indication text), not logic —
+# wrapping them mid-sentence would hurt readability more than it helps.
+"db/seed/generate_oncology_seed.py" = ["E501"]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]

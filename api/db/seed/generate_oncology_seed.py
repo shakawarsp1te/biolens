@@ -671,8 +671,10 @@ def main() -> None:
 
     out_path = Path(__file__).parent / "oncology_seed.sql"
     out_path.write_text("\n".join(lines) + "\n")
-    print(f"Wrote {out_path} ({len(TARGETS)} targets, {len(COMPANIES)} companies, {len(DRUGS)} drugs, "
-          f"{len(TRIALS)} trials, {len(indications)} indications)")
+    print(
+        f"Wrote {out_path} ({len(TARGETS)} targets, {len(COMPANIES)} companies, {len(DRUGS)} drugs, "
+        f"{len(TRIALS)} trials, {len(indications)} indications)"
+    )
 
 
 if __name__ == "__main__":

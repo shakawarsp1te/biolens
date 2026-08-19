@@ -43,11 +43,11 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 3 — ClinicalTrials.gov Integration (Days 10–12)
 
-- [ ] NCT ID lookup
-- [ ] Sponsor/company search
-- [ ] Drug/intervention search
-- [ ] Cache raw API responses
-- [ ] Write tests for parsing/matching logic
+- [x] NCT ID lookup
+- [x] Sponsor/company search
+- [x] Drug/intervention search
+- [x] Cache raw API responses (in-memory `CacheStore` abstraction — Postgres-backed impl once Supabase exists)
+- [x] Write tests for parsing/matching logic (41 tests; parsing tests run against real captured API fixtures, not hand-built fakes)
 
 ## Phase 4 — PubMed Integration (Days 13–14)
 
