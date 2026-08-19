@@ -32,13 +32,13 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 2 — Schema & Seed Data (Days 7–9)
 
-- [ ] Create tables: `companies`, `drugs`, `targets`, `indications`, `drug_indications`, `trials`, `trial_results`, `sources`, `events`, `analyses`, `watchlists`
-- [ ] Add `last_verified_at` to companies/trials
-- [ ] Verify each seed company: still independent, ticker current, program active, not acquired
-- [ ] Seed 10 companies (oncology)
-- [ ] Seed 20 drugs
-- [ ] Seed 10 targets (simple + detailed explanations each)
-- [ ] Seed 20 trials
+- [x] Create tables: `companies`, `drugs`, `targets`, `indications`, `drug_indications`, `trials`, `trial_results`, `sources`, `events`, `analyses`, `watchlists` (schema written in `api/db/migrations/0001_init_schema.sql`; not yet run against a live DB — no Supabase project exists yet)
+- [x] Add `last_verified_at` to companies/trials
+- [x] Verify each seed company: still independent, ticker current, program active, not acquired (web-search verified Aug 19, 2026 — see `api/db/seed/README.md`; this check caught and excluded one already-acquired company and one discontinued drug)
+- [x] Seed 10 companies (oncology)
+- [ ] Seed 20 drugs (16 seeded — every one individually verified; didn't pad to 20 with unverified/invented drugs)
+- [x] Seed 10 targets (simple + detailed explanations each) (15 seeded — real target diversity across the 16 drugs came out higher than 10)
+- [ ] Seed 20 trials (19 seeded, 18 with a verified real NCT ID)
 - [ ] Build company profile page (BioLens Summary, Why It Matters, Pipeline view, Thesis Map)
 
 ## Phase 3 — ClinicalTrials.gov Integration (Days 10–12)
