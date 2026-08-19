@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import clinicaltrials, health, pubmed, readout
+from app.routers import clinicaltrials, health, interpretation, pubmed, readout
 
 app = FastAPI(
     title="BioLens API",
@@ -21,3 +21,4 @@ app.include_router(health.router)
 app.include_router(clinicaltrials.router)
 app.include_router(pubmed.router)
 app.include_router(readout.router)
+app.include_router(interpretation.router)
