@@ -54,6 +54,28 @@ export interface Source {
   type: SourceType;
 }
 
+/** BUILD_BRIEF.txt §53 — shown alongside every Frontier Score. */
+export const FRONTIER_SCORE_EXPLANATION =
+  "Frontier Score ranks biotechnology research activity, not investment attractiveness.";
+
+/** BUILD_BRIEF.txt §54: the Discover-page card. Distinct from CompanySummary
+ * (Phase 1's simpler card) — this is richer, built around the Frontier
+ * Score and built specifically to explain *why* a company surfaced. */
+export interface DiscoveryCardData {
+  id: string;
+  name: string;
+  ticker?: string;
+  /** 0-100, from the api's calculate_frontier_score. */
+  frontierScore: number;
+  /** Short bullet points — e.g. "Phase II colorectal cancer results". */
+  whyItSurfaced: string[];
+  /** One sentence, per the brief's own "BioLens in one sentence" heading. */
+  oneSentenceSummary: string;
+  /** One sentence naming the single biggest risk to the thesis. */
+  keyRisk: string;
+  isMockData?: boolean;
+}
+
 export interface CompanySummary {
   id: string;
   name: string;

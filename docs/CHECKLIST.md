@@ -91,11 +91,12 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 8 — Discover (Days 23–24)
 
-- [ ] Seed ~20 emerging companies with transparent inclusion logic
-- [ ] Filters: Therapeutic Area (oncology only for now), Stage, Modality, Target (searchable), Company Maturity
-- [ ] Frontier Score calculation (Clinical Momentum 30% / Scientific Novelty 20% / Evidence Maturity 20% / Catalyst Activity 15% / Strategic Validation 15%)
-- [ ] Frontier Score explanation copy ("ranks research activity, not investment attractiveness")
-- [ ] Discovery card component
+- [x] Transparent inclusion logic — `classify_maturity()` implements §12's exact Emerging/Scaling/Established criteria as a deterministic function, fully tested
+- [ ] Seed ~20 emerging companies — still only the 10 real companies from Phase 2. Expanding to ~20 needs another real-research pass (same rigor as Phase 2's), not done this session — flagged rather than padded
+- [x] Filters: Therapeutic Area, Stage, Modality, Target (searchable), Company Maturity — `apply_discover_filters()` built and tested on the backend; **not yet wired to interactive mobile UI** (Discover screen shows the filter dimensions exist but has no pickers yet)
+- [x] Frontier Score calculation (Clinical Momentum 30% / Scientific Novelty 20% / Evidence Maturity 20% / Catalyst Activity 15% / Strategic Validation 15%) — exact weights verified by isolating each component
+- [x] Frontier Score explanation copy ("ranks research activity, not investment attractiveness") — identical copy on both API and mobile app
+- [x] Discovery card component — matches BUILD_BRIEF.txt §54 field-for-field (including its own Cardiff Oncology worked example, used verbatim as mock data); visually verified in-browser
 
 ## Phase 9 — Watchlist (Day 25)
 

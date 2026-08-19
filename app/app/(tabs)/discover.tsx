@@ -1,16 +1,20 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import CompanyCard from "../../components/CompanyCard";
+import DiscoveryCard from "../../components/DiscoveryCard";
 import DrugCard from "../../components/DrugCard";
 import ScreenShell from "../../components/ScreenShell";
 import TrialMetric from "../../components/TrialMetric";
 import { colors, spacing, typography } from "../../constants/theme";
-import { MOCK_COMPANIES, MOCK_DRUGS, MOCK_TRIAL_METRICS } from "../../mocks/phase1Preview";
+import { MOCK_DISCOVERY_CARDS } from "../../mocks/discoveryCards";
+import { MOCK_DRUGS, MOCK_TRIAL_METRICS } from "../../mocks/phase1Preview";
 
-// Real Discover (Frontier Score model, filters, ~20 emerging companies) is
-// Phase 8. This screen previews the Phase 1 components with mock data so
-// they're visible end to end before that filtering/scoring work exists.
+// Phase 8: Discovery Card (BUILD_BRIEF.txt §54) + the Frontier Score model
+// (api/app/services/frontier_score.py) and filter logic
+// (api/app/services/discover.py) are built and tested on the backend.
+// Interactive filter UI (Therapeutic Area / Stage / Modality / Target /
+// Maturity) is not built yet — the backend's apply_discover_filters is
+// ready for it once it exists.
 export default function DiscoverScreen() {
   const router = useRouter();
 
@@ -20,8 +24,8 @@ export default function DiscoverScreen() {
       subtitle="Emerging oncology companies, ranked by research activity — not investment attractiveness."
     >
       <Text style={styles.sectionLabel}>Companies</Text>
-      {MOCK_COMPANIES.map((company) => (
-        <CompanyCard key={company.id} company={company} onPress={() => router.push(`/company/${company.id}`)} />
+      {MOCK_DISCOVERY_CARDS.map((card) => (
+        <DiscoveryCard key={card.id} data={card} onExplore={() => router.push(`/company/${card.id}`)} />
       ))}
 
       <Text style={styles.sectionLabel}>Drugs</Text>
@@ -37,8 +41,8 @@ export default function DiscoverScreen() {
       </View>
 
       <Text style={styles.footnote}>
-        Filters (Therapeutic Area, Stage, Modality, Target) and the Frontier Score model land in Phase 8, once seed
-        data (Phase 2) exists.
+        Filters (Therapeutic Area, Stage, Modality, Target, Maturity) are built and tested on the
+        backend but not wired up to interactive UI yet.
       </Text>
     </ScreenShell>
   );
