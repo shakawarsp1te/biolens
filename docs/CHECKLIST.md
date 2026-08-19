@@ -69,16 +69,16 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 6 — Deterministic Statistics Parser (Days 18–20)
 
-- [ ] Endpoint type classifier (time-to-event / binary / continuous)
-- [ ] Sample size + evaluable-population extraction
-- [ ] ORR denominator display (never % alone)
-- [ ] HR handling with correct plain-language framing (no "% of patients saved")
-- [ ] CI parsing + validation (no "95% probability" misstatement)
-- [ ] P-value storage, no automatic p<0.05 = success framing
-- [ ] Primary vs. secondary vs. exploratory endpoint labeling
-- [ ] Single-arm trial warning logic
-- [ ] Interim-analysis threshold handling (never default to 0.05 blindly)
-- [ ] Unit tests for every parser function above
+- [x] Endpoint type classifier (time-to-event / binary / continuous)
+- [x] Sample size + evaluable-population extraction
+- [x] ORR denominator display (never % alone) — refuses to back-calculate responders from a percentage + sample size when the source doesn't state the fraction explicitly (real case caught: the CRDF-004 abstract gives 26.4% and n=53 but never "14 of 53")
+- [x] HR handling with correct plain-language framing (no "% of patients saved")
+- [x] CI parsing + validation (no "95% probability" misstatement) — handles both numeric and "not reached" upper bounds
+- [x] P-value storage, no automatic p<0.05 = success framing
+- [x] Primary vs. secondary vs. exploratory endpoint labeling
+- [x] Single-arm trial warning logic
+- [x] Interim-analysis threshold handling (never default to 0.05 blindly)
+- [x] Unit tests for every parser function above (53 new tests, several run against the real Cardiff Oncology CRDF-004 trial abstract fetched live in Phase 4, not just synthetic strings)
 
 ## Phase 7 — Interpretation Layer (Days 21–22)
 
