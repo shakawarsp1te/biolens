@@ -6,29 +6,29 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 0 — Repo & Infra (Days 1–3)
 
-- [ ] Initialize monorepo (e.g. `/app` for Expo, `/api` for FastAPI)
-- [ ] `npx create-expo-app` with TypeScript template
-- [ ] Set up Expo Router
-- [ ] Initialize FastAPI project structure
+- [x] Initialize monorepo (e.g. `/app` for Expo, `/api` for FastAPI)
+- [x] `npx create-expo-app` with TypeScript template
+- [x] Set up Expo Router
+- [x] Initialize FastAPI project structure
 - [ ] Provision Postgres (Supabase project)
 - [ ] Enable pgvector extension
 - [ ] Set up Supabase Auth
-- [ ] Create `.env.example` for both app and api (no real keys committed)
-- [ ] Set up CI (lint + basic tests) for both app and api
-- [ ] Set up linting/formatting (ESLint/Prettier for app, ruff/black for api)
-- [ ] Build static mock screens for all 5 tabs (no live data, no AI)
+- [x] Create `.env.example` for both app and api (no real keys committed)
+- [x] Set up CI (lint + basic tests) for both app and api
+- [x] Set up linting/formatting (ESLint/Prettier for app, ruff/black for api)
+- [x] Build static mock screens for all 5 tabs (no live data, no AI)
 - [ ] Confirm Expo Go dev loop works on a physical iPhone or simulator
 
 ## Phase 1 — Navigation & Components (Days 4–6)
 
-- [ ] Implement 5-tab navigation: Home, Discover, Search, Watchlist, Profile
-- [ ] Build `CompanyCard`
-- [ ] Build `EventCard`
-- [ ] Build `EvidenceBadge` (High/Moderate/Low confidence — categorical only)
-- [ ] Build `SourceChip`
-- [ ] Build `DrugCard`
-- [ ] Build `TrialMetric`
-- [ ] Apply UI style direction: premium/scientific/minimal — no DNA-helix clip art, no neon "AI" gradients, no green=buy/red=sell
+- [x] Implement 5-tab navigation: Home, Discover, Search, Watchlist, Profile
+- [x] Build `CompanyCard`
+- [x] Build `EventCard`
+- [x] Build `EvidenceBadge` (High/Moderate/Low confidence — categorical only)
+- [x] Build `SourceChip`
+- [x] Build `DrugCard`
+- [x] Build `TrialMetric`
+- [x] Apply UI style direction: premium/scientific/minimal — no DNA-helix clip art, no neon "AI" gradients, no green=buy/red=sell
 
 ## Phase 2 — Schema & Seed Data (Days 7–9)
 

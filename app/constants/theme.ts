@@ -17,6 +17,13 @@ export const colors = {
   confidenceHigh: "#8FB8A8",
   confidenceModerate: "#C9B27A",
   confidenceLow: "#8A8F98",
+  // Evidence classification (Phase 7) reuses the same muted, non-alarmist
+  // palette as confidence — strength of evidence, not a buy/sell signal.
+  evidenceConfirmatory: "#8FB8A8",
+  evidenceEncouraging: "#5B8DEF",
+  evidenceInconclusive: "#C9B27A",
+  evidenceNegative: "#8A8F98",
+  mockDataBanner: "#4A3F2A",
 } as const;
 
 export const spacing = {
