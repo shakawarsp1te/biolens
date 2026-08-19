@@ -17,7 +17,7 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 - [x] Set up CI (lint + basic tests) for both app and api
 - [x] Set up linting/formatting (ESLint/Prettier for app, ruff/black for api)
 - [x] Build static mock screens for all 5 tabs (no live data, no AI)
-- [ ] Confirm Expo Go dev loop works on a physical iPhone or simulator
+- [x] Confirm Expo Go dev loop works on a physical iPhone or simulator
 
 ## Phase 1 — Navigation & Components (Days 4–6)
 
