@@ -1,13 +1,21 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { CompanySummary } from "../types/domain";
 import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
 
-export default function CompanyCard({ company }: { company: CompanySummary }) {
+export default function CompanyCard({
+  company,
+  onPress,
+}: {
+  company: CompanySummary;
+  /** Omit to render as a static (non-tappable) card. */
+  onPress?: () => void;
+}) {
+  const Wrapper = onPress ? Pressable : View;
   return (
-    <View style={styles.card}>
+    <Wrapper style={styles.card} onPress={onPress}>
       {company.isMockData ? <MockDataFlag /> : null}
       <View style={styles.headerRow}>
         <Text style={styles.name}>{company.name}</Text>
@@ -23,7 +31,7 @@ export default function CompanyCard({ company }: { company: CompanySummary }) {
           <Text style={styles.frontierScore}>Frontier Score {company.frontierScore}</Text>
         ) : null}
       </View>
-    </View>
+    </Wrapper>
   );
 }
 

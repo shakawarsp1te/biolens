@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import CompanyCard from "../../components/CompanyCard";
@@ -11,6 +12,8 @@ import { MOCK_COMPANIES, MOCK_DRUGS, MOCK_TRIAL_METRICS } from "../../mocks/phas
 // Phase 8. This screen previews the Phase 1 components with mock data so
 // they're visible end to end before that filtering/scoring work exists.
 export default function DiscoverScreen() {
+  const router = useRouter();
+
   return (
     <ScreenShell
       title="Discover"
@@ -18,7 +21,7 @@ export default function DiscoverScreen() {
     >
       <Text style={styles.sectionLabel}>Companies</Text>
       {MOCK_COMPANIES.map((company) => (
-        <CompanyCard key={company.id} company={company} />
+        <CompanyCard key={company.id} company={company} onPress={() => router.push(`/company/${company.id}`)} />
       ))}
 
       <Text style={styles.sectionLabel}>Drugs</Text>

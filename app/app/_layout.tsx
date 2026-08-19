@@ -8,6 +8,16 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="company/[id]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.textPrimary,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
     </>
   );

@@ -69,6 +69,50 @@ export interface CompanySummary {
   isMockData?: boolean;
 }
 
+/** BUILD_BRIEF.txt §20: pipeline stages, shown as a horizontal progression. */
+export type PipelineStage = "Discovery" | "Phase I" | "Phase II" | "Phase III" | "Regulatory" | "Approved";
+
+/** BUILD_BRIEF.txt §20: one asset row in the Pipeline view. */
+export interface PipelineAsset {
+  drugId: string;
+  drugName: string;
+  target: string;
+  modality: string;
+  disease: string;
+  stage: PipelineStage;
+  trialIds: string[];
+  nextMilestone?: string;
+}
+
+/** BUILD_BRIEF.txt §21: the Thesis Map. Two short numbered lists — never
+ * prose, never a recommendation. Teaches how biotech uncertainty works,
+ * doesn't resolve it. */
+export interface ThesisMap {
+  whatHasToGoRight: string[];
+  whatCouldGoWrong: string[];
+}
+
+/** BUILD_BRIEF.txt §18-21: the full company profile screen. */
+export interface CompanyProfile {
+  id: string;
+  name: string;
+  ticker?: string;
+  status: string;
+  primaryFocus: string;
+  technology: string;
+  /** §18: three sentences maximum — what the company does, why the tech is
+   * interesting, what determines near-term success. Enforced by convention,
+   * not code — see the mock data comment for how this was kept to 3. */
+  biolensSummary: string;
+  /** §19: "Why investors are watching" — descriptive, never promotional,
+   * never a recommendation. */
+  whyItMatters: string[];
+  pipeline: PipelineAsset[];
+  thesisMap: ThesisMap;
+  confidence: ConfidenceLevel;
+  isMockData?: boolean;
+}
+
 export interface DrugSummary {
   id: string;
   name: string;

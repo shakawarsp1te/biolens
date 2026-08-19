@@ -39,7 +39,7 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 - [ ] Seed 20 drugs (16 seeded — every one individually verified; didn't pad to 20 with unverified/invented drugs)
 - [x] Seed 10 targets (simple + detailed explanations each) (15 seeded — real target diversity across the 16 drugs came out higher than 10)
 - [ ] Seed 20 trials (19 seeded, 18 with a verified real NCT ID)
-- [ ] Build company profile page (BioLens Summary, Why It Matters, Pipeline view, Thesis Map)
+- [x] Build company profile page (BioLens Summary, Why It Matters, Pipeline view, Thesis Map)
 
 ## Phase 3 — ClinicalTrials.gov Integration (Days 10–12)
 
