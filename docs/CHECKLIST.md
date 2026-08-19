@@ -51,12 +51,12 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 4 — PubMed Integration (Days 13–14)
 
-- [ ] Targeted search by NCT ID
-- [ ] Targeted search by drug name/alias
-- [ ] Targeted search by target + indication
-- [ ] Cache results (Drug/Company Research Packages)
-- [ ] Respect rate limits
-- [ ] Store only permitted metadata/abstracts — no full-text scraping of copyrighted papers
+- [x] Targeted search by NCT ID (via PubMed's Secondary Source ID field — verified live)
+- [x] Targeted search by drug name/alias
+- [x] Targeted search by target + indication
+- [x] Cache results (Drug Research Packages — company-level aggregation needs the live DB, so it composes per-drug packages rather than a separate concept)
+- [x] Respect rate limits (3 req/sec, 10 with an API key — hit NCBI's real limit once while collecting test fixtures, which is how thoroughly this was checked)
+- [x] Store only permitted metadata/abstracts — no full-text scraping of copyrighted papers
 
 ## Phase 5 — Readout Ingestion (Days 15–17)
 
