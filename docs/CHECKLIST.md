@@ -60,10 +60,12 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 5 — Readout Ingestion (Days 15–17)
 
-- [ ] Plain-text input endpoint (`POST /analyze/readout`)
-- [ ] Entity extraction: company, drug, target, trial/NCT ID, phase, indication
-- [ ] Structured JSON output (Pydantic-validated)
-- [ ] Retry-with-repair on malformed model output
+- [x] Plain-text input endpoint (`POST /analyze/readout`) — built and running; correctly 503s until an Anthropic key exists (verified live)
+- [x] Entity extraction: company, drug, target, trial/NCT ID, phase, indication (`ReadoutExtraction` model)
+- [x] Structured JSON output (Pydantic-validated) — via Anthropic's native `messages.parse(output_format=...)`
+- [x] Retry-with-repair on malformed model output — orchestration logic thoroughly tested against a fake provider
+
+**Not yet verified live** — no `ANTHROPIC_API_KEY` available. `AnthropicProvider` (`api/app/services/llm.py`) is written to the documented SDK surface but has never actually called the API. Everything downstream of that call (retry-with-repair, the router, the Pydantic validators) is tested against a `FakeLLMProvider` double, which proves BioLens's own logic but not the real Anthropic integration. Re-verify end-to-end the first time a real key is added to `api/.env`.
 
 ## Phase 6 — Deterministic Statistics Parser (Days 18–20)
 

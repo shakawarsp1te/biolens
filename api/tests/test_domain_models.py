@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.models.domain import EndpointRole, TrialMetricKind, TrialResult
+from app.models.domain import EndpointRole, ReadoutExtraction, TrialMetricKind, TrialResult
 
 
 def _base_kwargs(**overrides):
@@ -54,3 +54,40 @@ def test_hazard_ratio_with_caption_is_valid():
             ),
         )
     )
+
+
+class TestReadoutExtractionNctIdValidation:
+    def test_none_is_allowed(self):
+        ReadoutExtraction(nct_id=None)
+
+    def test_well_formed_id_is_normalized_uppercase(self):
+        extraction = ReadoutExtraction(nct_id="nct05519449")
+        assert extraction.nct_id == "NCT05519449"
+
+    def test_already_correct_id_passes_through(self):
+        extraction = ReadoutExtraction(nct_id="NCT05519449")
+        assert extraction.nct_id == "NCT05519449"
+
+    def test_space_before_digits_is_rejected(self):
+        # The exact malformation LLMs commonly produce.
+        with pytest.raises(ValidationError):
+            ReadoutExtraction(nct_id="NCT 05519449")
+
+    def test_hyphen_is_rejected(self):
+        with pytest.raises(ValidationError):
+            ReadoutExtraction(nct_id="NCT-05519449")
+
+    def test_wrong_digit_count_is_rejected(self):
+        with pytest.raises(ValidationError):
+            ReadoutExtraction(nct_id="NCT123")
+
+    def test_missing_prefix_is_rejected(self):
+        with pytest.raises(ValidationError):
+            ReadoutExtraction(nct_id="05519449")
+
+    def test_all_fields_optional(self):
+        # Every field null is valid — "nothing was stated in the text" is a
+        # legitimate extraction result, not a failure.
+        extraction = ReadoutExtraction()
+        assert extraction.company_name is None
+        assert extraction.phase is None

@@ -10,11 +10,12 @@ rejected at the API boundary, not just at insert time.
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ConfidenceLevel(str, Enum):
@@ -210,3 +211,40 @@ class WatchlistEntry(BaseModel):
     entity_type: WatchlistEntityType
     entity_id: UUID
     created_at: datetime
+
+
+_NCT_ID_PATTERN = re.compile(r"NCT\d{8}")
+
+
+class ReadoutExtraction(BaseModel):
+    """Phase 5 (readout ingestion): structured facts pulled from a plain-text
+    trial readout. Every field is optional — the extraction prompt instructs
+    the model to leave a field null rather than guess, so a null here means
+    "not stated in the text," not "extraction failed."
+
+    nct_id's format validator is deliberately strict (exactly NCTdddddddd,
+    no space/hyphen/lowercase) — LLMs commonly write "NCT 12345678" or
+    "nct-12345678", and this is the field the app/services/readout_extraction
+    retry-with-repair loop is designed to actually catch."""
+
+    company_name: str | None = None
+    drug_name: str | None = None
+    target: str | None = None
+    nct_id: str | None = None
+    phase: TrialPhase | None = None
+    indication: str | None = None
+    # Anything the model wants to flag: ambiguity, multiple candidate drugs
+    # mentioned, a value it wasn't confident enough in to fill.
+    extraction_notes: str | None = None
+
+    @field_validator("nct_id")
+    @classmethod
+    def validate_nct_id_format(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        normalized = value.strip().upper()
+        if not _NCT_ID_PATTERN.fullmatch(normalized):
+            raise ValueError(
+                f"'{value}' is not a valid NCT ID (expected exactly 'NCT' followed by 8 digits)"
+            )
+        return normalized
