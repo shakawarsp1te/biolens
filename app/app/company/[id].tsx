@@ -8,21 +8,31 @@ import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, spacing, typography } from "../../constants/theme";
-import { MOCK_COMPANY_PROFILE } from "../../mocks/companyProfile";
+import { MOCK_COMPANY_PROFILES } from "../../mocks/companyProfile";
 
 /**
  * Company profile screen (BUILD_BRIEF.txt §18-21): BioLens Summary ->
  * Why It Matters -> Pipeline view -> Thesis Map, per the information
  * hierarchy rule (§65) of leading with "what matters" before depth.
  *
- * Only one real profile exists as mock data today (Janux Therapeutics, the
- * brief's own worked example) — `id` is accepted so the route shape is
- * right for when this fetches from the Phase 2 `companies` table instead,
- * but it isn't used to look anything up yet.
+ * Four real profiles exist as mock data today (Janux, Cardiff, Erasca,
+ * Xencor — all four of Discover's Discovery Cards), looked up by id so each
+ * "Explore" button actually opens the company that was tapped, not always
+ * the same one.
  */
 export default function CompanyProfileScreen() {
-  useLocalSearchParams<{ id: string }>();
-  const company = MOCK_COMPANY_PROFILE;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const company = id ? MOCK_COMPANY_PROFILES[id] : undefined;
+
+  if (!company) {
+    return (
+      <ScreenShell title="Company not found" subtitle="No profile exists yet for this company.">
+        <Text style={styles.paragraph}>
+          Only companies shown on Discover have a profile today — go back and tap one of those.
+        </Text>
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell
