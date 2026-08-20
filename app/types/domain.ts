@@ -61,6 +61,9 @@ export const FRONTIER_SCORE_EXPLANATION =
 /** BUILD_BRIEF.txt §54: the Discover-page card. Distinct from CompanySummary
  * (Phase 1's simpler card) — this is richer, built around the Frontier
  * Score and built specifically to explain *why* a company surfaced. */
+/** api/app/services/frontier_score.py's CompanyMaturity, mirrored. */
+export type CompanyMaturity = "emerging" | "scaling" | "established";
+
 export interface DiscoveryCardData {
   id: string;
   name: string;
@@ -73,6 +76,15 @@ export interface DiscoveryCardData {
   oneSentenceSummary: string;
   /** One sentence naming the single biggest risk to the thesis. */
   keyRisk: string;
+  /** Filter dimensions (BUILD_BRIEF.txt §11) — mirrors
+   * api/app/services/discover.py's DiscoverListing so the same filtering
+   * rules apply client-side against mock data today and server-side once
+   * a live API exists. */
+  therapeuticArea: string;
+  stage: TrialPhase;
+  maturity: CompanyMaturity;
+  modalities: string[];
+  targets: string[];
   isMockData?: boolean;
 }
 
