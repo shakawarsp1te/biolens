@@ -4,6 +4,7 @@ import { colors, radii, spacing, typography } from "../constants/theme";
 import { DiscoveryCardData, FRONTIER_SCORE_EXPLANATION } from "../types/domain";
 import Avatar from "./Avatar";
 import MockDataFlag from "./MockDataFlag";
+import WatchButton from "./WatchButton";
 
 /**
  * BUILD_BRIEF.txt §54, followed field-for-field: name/ticker header,
@@ -39,9 +40,12 @@ export default function DiscoveryCard({
             {data.ticker ? <Text style={styles.ticker}>{data.ticker}</Text> : null}
           </View>
         </View>
-        <View style={styles.scoreBlock}>
-          <Text style={styles.scoreValue}>{data.frontierScore}</Text>
-          <Text style={styles.scoreLabel}>Frontier Score</Text>
+        <View style={styles.headerRight}>
+          <WatchButton entityType="company" entityId={data.id} />
+          <View style={styles.scoreBlock}>
+            <Text style={styles.scoreValue}>{data.frontierScore}</Text>
+            <Text style={styles.scoreLabel}>Frontier Score</Text>
+          </View>
         </View>
       </View>
       <Text style={styles.scoreExplanation}>{FRONTIER_SCORE_EXPLANATION}</Text>
@@ -64,7 +68,10 @@ export default function DiscoveryCard({
       </Section>
 
       {onExplore ? (
-        <Pressable style={({ pressed }) => [styles.exploreButton, pressed && styles.exploreButtonPressed]} onPress={onExplore}>
+        <Pressable
+          style={({ pressed }) => [styles.exploreButton, pressed && styles.exploreButtonPressed]}
+          onPress={onExplore}
+        >
           <Text style={styles.exploreButtonText}>Explore</Text>
         </Pressable>
       ) : null}
@@ -112,6 +119,11 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textTertiary,
     marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   scoreBlock: {
     alignItems: "flex-end",

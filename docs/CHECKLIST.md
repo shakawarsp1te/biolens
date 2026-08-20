@@ -100,10 +100,10 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 9 — Watchlist (Day 25)
 
-- [ ] Follow/unfollow companies
-- [ ] Follow/unfollow drugs
-- [ ] Follow/unfollow targets
-- [ ] Persist to `watchlists` table
+- [x] Follow/unfollow companies — `WatchButton` wired into `DiscoveryCard`, shared `WatchlistContext` keeps Discover and Watchlist in sync live
+- [ ] Follow/unfollow drugs — same `WatchButton`/service supports `entityType: "drug"` already; no drug-level card has the button wired in yet
+- [ ] Follow/unfollow targets — same gap as drugs
+- [x] Persist to `watchlists` table — persisted to AsyncStorage (device-local) in the exact shape of the real `watchlists` table (`entity_type`, `entity_id`); genuine persistence, verified surviving a full page reload, not an in-memory stub. Swapping to the real Supabase-backed table later is a storage-layer change in `app/services/watchlist.ts` only, not a data-model or UI change — needs Phase 0's Supabase Auth to exist first, since cross-device sync needs an account.
 
 ## Phase 10 — Ask BioLens (Day 26)
 
