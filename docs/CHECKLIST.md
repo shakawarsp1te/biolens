@@ -139,6 +139,13 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ---
 
+## Beyond the checklist (not tied to a numbered phase)
+
+- [x] Visual redesign, Robinhood-inspired (Aug 20, 2026) — new theme system (near-black canvas, big bold "hero" numbers, pill-based chips instead of bordered boxes, disciplined single accent color — kept blue, deliberately never green, so a hero number can never read as "the stock is up"). Applied across every screen and component. Verified in-browser at multiple viewport sizes before committing.
+- [x] Live Search (Aug 20, 2026) — the Search tab (previously a Phase-0 placeholder) now hits the real ClinicalTrials.gov and PubMed APIs directly and shows real results, with no seed database required. `app/services/api.ts` is a typed client; `utils/discoverFilters.ts`-style parity with the backend keeps behavior identical to what a future `companies`/`drugs`-table-backed search would do. Verified live end-to-end: searching "onvansertib" against a locally-running backend returned 10 real trials (correct NCT IDs, phases, sponsors, statuses) and 5 real PubMed papers.
+
+---
+
 ## Cross-cutting (apply throughout, not a phase)
 
 - [ ] No BUY/SELL/price-target language anywhere in copy or model output
