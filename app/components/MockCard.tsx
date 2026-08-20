@@ -28,10 +28,8 @@ export default function MockCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     marginBottom: spacing.md,
   },
   eyebrow: {

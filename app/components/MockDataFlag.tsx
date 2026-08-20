@@ -19,10 +19,10 @@ const styles = StyleSheet.create({
   banner: {
     alignSelf: "flex-start",
     backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.sm,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.xs,
+    borderRadius: radii.pill,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
   },
   text: {
     ...typography.caption,

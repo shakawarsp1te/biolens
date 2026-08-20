@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Avatar from "../../components/Avatar";
 import EvidenceBadge from "../../components/EvidenceBadge";
 import MockDataFlag from "../../components/MockDataFlag";
 import PipelineAssetRow from "../../components/PipelineAssetRow";
@@ -30,9 +31,12 @@ export default function CompanyProfileScreen() {
     >
       {company.isMockData ? <MockDataFlag /> : null}
 
-      <View style={styles.headerMeta}>
-        <MetaRow label="Primary focus" value={company.primaryFocus} />
-        <MetaRow label="Technology" value={company.technology} />
+      <View style={styles.identityRow}>
+        <Avatar name={company.name} size={44} />
+        <View style={styles.headerMeta}>
+          <MetaRow label="Primary focus" value={company.primaryFocus} />
+          <MetaRow label="Technology" value={company.technology} />
+        </View>
       </View>
       <EvidenceBadge level={company.confidence} />
 
@@ -81,8 +85,14 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  identityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
   headerMeta: {
-    marginBottom: spacing.sm,
+    marginLeft: spacing.md,
+    flexShrink: 1,
   },
   metaRow: {
     ...typography.body,

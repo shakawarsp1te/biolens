@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { EventSummary, EvidenceClassification } from "../types/domain";
+import Avatar from "./Avatar";
 import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
 import SourceChip from "./SourceChip";
@@ -25,17 +26,23 @@ export default function EventCard({ event }: { event: EventSummary }) {
   return (
     <View style={styles.card}>
       {event.isMockData ? <MockDataFlag /> : null}
-      <Text style={styles.eyebrow}>
-        {event.companyName}
-        {event.ticker ? ` · ${event.ticker}` : ""} · {event.phase} · {event.eventType}
-      </Text>
+      <View style={styles.headerRow}>
+        <Avatar name={event.companyName} size={32} />
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {event.companyName}
+          {event.ticker ? ` · ${event.ticker}` : ""} · {event.phase} · {event.eventType}
+        </Text>
+      </View>
       <Text style={styles.title}>{event.title}</Text>
       <Text style={styles.bottomLine}>{event.bottomLine}</Text>
       <View style={styles.footerRow}>
-        <View style={[styles.classificationDot, { backgroundColor: classification.color }]} />
-        <Text style={styles.classificationLabel}>{classification.label}</Text>
+        <View style={[styles.classificationPill, { backgroundColor: classification.color + "1A" }]}>
+          <Text style={[styles.classificationLabel, { color: classification.color }]}>
+            {classification.label}
+          </Text>
+        </View>
+        <EvidenceBadge level={event.confidence} />
       </View>
-      <EvidenceBadge level={event.confidence} />
       {event.sources.length > 0 ? (
         <View style={styles.sourceRow}>
           {event.sources.map((source) => (
@@ -50,18 +57,21 @@ export default function EventCard({ event }: { event: EventSummary }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.accent,
+    color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
+    marginLeft: spacing.sm,
+    flexShrink: 1,
   },
   title: {
     ...typography.heading,
@@ -71,22 +81,23 @@ const styles = StyleSheet.create({
   bottomLine: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.xs,
     marginBottom: spacing.xs,
   },
-  classificationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: radii.sm,
-    marginRight: spacing.xs,
+  classificationPill: {
+    borderRadius: radii.pill,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm,
   },
   classificationLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    letterSpacing: 0.2,
   },
   sourceRow: {
     flexDirection: "row",

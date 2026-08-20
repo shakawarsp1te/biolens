@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { DiscoveryCardData, FRONTIER_SCORE_EXPLANATION } from "../types/domain";
+import Avatar from "./Avatar";
 import MockDataFlag from "./MockDataFlag";
 
 /**
@@ -10,6 +11,12 @@ import MockDataFlag from "./MockDataFlag";
  * [Explore]. FRONTIER_SCORE_EXPLANATION is shown every time a score is —
  * §53's rule that the score must never be presented without its own
  * "not investment attractiveness" caveat right there with it.
+ *
+ * The score gets the "hero number" treatment (large, bold, top-right,
+ * beside the company identity) deliberately — it's the single stat this
+ * whole card exists to justify, so it should read at a glance the way a
+ * price would on a trading app, while the caption right under it keeps
+ * that comparison from being misleading.
  */
 export default function DiscoveryCard({
   data,
@@ -23,13 +30,19 @@ export default function DiscoveryCard({
       {data.isMockData ? <MockDataFlag /> : null}
 
       <View style={styles.headerRow}>
-        <Text style={styles.name}>{data.name}</Text>
-        {data.ticker ? <Text style={styles.ticker}>{data.ticker}</Text> : null}
-      </View>
-
-      <View style={styles.scoreRow}>
-        <Text style={styles.scoreLabel}>Frontier Score</Text>
-        <Text style={styles.scoreValue}>{data.frontierScore}</Text>
+        <View style={styles.identity}>
+          <Avatar name={data.name} size={40} />
+          <View style={styles.identityText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {data.name}
+            </Text>
+            {data.ticker ? <Text style={styles.ticker}>{data.ticker}</Text> : null}
+          </View>
+        </View>
+        <View style={styles.scoreBlock}>
+          <Text style={styles.scoreValue}>{data.frontierScore}</Text>
+          <Text style={styles.scoreLabel}>Frontier Score</Text>
+        </View>
       </View>
       <Text style={styles.scoreExplanation}>{FRONTIER_SCORE_EXPLANATION}</Text>
 
@@ -51,7 +64,7 @@ export default function DiscoveryCard({
       </Section>
 
       {onExplore ? (
-        <Pressable style={styles.exploreButton} onPress={onExplore}>
+        <Pressable style={({ pressed }) => [styles.exploreButton, pressed && styles.exploreButtonPressed]} onPress={onExplore}>
           <Text style={styles.exploreButtonText}>Explore</Text>
         </Pressable>
       ) : null}
@@ -71,57 +84,62 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     marginBottom: spacing.md,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.sm,
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  identity: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+    marginRight: spacing.md,
+  },
+  identityText: {
+    marginLeft: spacing.sm,
+    flexShrink: 1,
   },
   name: {
     ...typography.heading,
     color: colors.textPrimary,
-    flexShrink: 1,
   },
   ticker: {
     ...typography.caption,
     color: colors.textTertiary,
-    marginLeft: spacing.sm,
+    marginTop: 2,
   },
-  scoreRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: spacing.xs,
+  scoreBlock: {
+    alignItems: "flex-end",
+  },
+  scoreValue: {
+    ...typography.hero,
+    fontSize: 32,
+    color: colors.accent,
   },
   scoreLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginRight: spacing.sm,
-  },
-  scoreValue: {
-    ...typography.title,
-    color: colors.accent,
+    marginTop: -2,
   },
   scoreExplanation: {
     ...typography.caption,
     color: colors.textTertiary,
-    marginBottom: spacing.sm,
+    letterSpacing: 0,
+    marginBottom: spacing.md,
   },
   section: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   sectionTitle: {
     ...typography.caption,
     color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.4,
     marginBottom: spacing.xs,
   },
   bulletText: {
@@ -134,16 +152,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   exploreButton: {
-    marginTop: spacing.md,
-    alignSelf: "flex-start",
-    backgroundColor: colors.accentMuted,
-    borderRadius: radii.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm + 2,
+  },
+  exploreButtonPressed: {
+    opacity: 0.85,
   },
   exploreButtonText: {
     ...typography.body,
-    color: colors.accent,
-    fontWeight: "600",
+    color: "#04070D",
+    fontWeight: "700",
   },
 });

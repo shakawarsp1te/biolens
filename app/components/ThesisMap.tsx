@@ -38,23 +38,22 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: colors.surfaceRaised,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
   },
   sectionTitle: {
     ...typography.heading,
+    fontSize: 17,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   row: {
     flexDirection: "row",
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   index: {
     ...typography.caption,
-    color: colors.textTertiary,
+    color: colors.accent,
     width: 20,
   },
   itemText: {

@@ -81,10 +81,8 @@ function endpointRoleLabel(role: NonNullable<TrialMetricData["endpointRole"]>) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.surfaceRaised,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
+    borderRadius: radii.md,
+    padding: spacing.md,
     marginBottom: spacing.sm,
   },
   headerRow: {
@@ -97,14 +95,14 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.4,
   },
   endpointRole: {
     ...typography.caption,
     color: colors.textTertiary,
   },
   primary: {
-    ...typography.heading,
+    ...typography.title,
+    fontSize: 22,
     color: colors.textPrimary,
   },
   secondary: {

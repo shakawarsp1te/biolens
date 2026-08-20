@@ -33,11 +33,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl * 2,
   },
   header: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   title: {
     ...typography.title,

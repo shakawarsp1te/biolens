@@ -6,6 +6,8 @@ import { ConfidenceLevel } from "../types/domain";
 /**
  * Categorical confidence indicator — High / Moderate / Low only.
  * Never render a fabricated numerical probability here (BUILD_BRIEF.txt §63).
+ * Soft tinted pill (dot + label on a low-opacity fill of the same color) —
+ * legible at a glance in a dense list without competing with the brand accent.
  */
 
 const LEVEL_META: Record<ConfidenceLevel, { label: string; color: string }> = {
@@ -24,9 +26,9 @@ export default function EvidenceBadge({
 }) {
   const meta = LEVEL_META[level];
   return (
-    <View style={styles.badge}>
+    <View style={[styles.badge, { backgroundColor: meta.color + "1A" }]}>
       <View style={[styles.dot, { backgroundColor: meta.color }]} />
-      <Text style={styles.label}>{label ?? meta.label}</Text>
+      <Text style={[styles.label, { color: meta.color }]}>{label ?? meta.label}</Text>
     </View>
   );
 }
@@ -36,15 +38,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
+    borderRadius: radii.pill,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm,
   },
   dot: {
     width: 6,
     height: 6,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
     marginRight: spacing.xs,
   },
   label: {
     ...typography.caption,
-    color: colors.textSecondary,
+    letterSpacing: 0.2,
   },
 });

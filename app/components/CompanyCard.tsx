@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { CompanySummary } from "../types/domain";
+import Avatar from "./Avatar";
 import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
 
@@ -18,12 +19,17 @@ export default function CompanyCard({
     <Wrapper style={styles.card} onPress={onPress}>
       {company.isMockData ? <MockDataFlag /> : null}
       <View style={styles.headerRow}>
-        <Text style={styles.name}>{company.name}</Text>
-        {company.ticker ? <Text style={styles.ticker}>{company.ticker}</Text> : null}
+        <Avatar name={company.name} size={36} />
+        <View style={styles.identityText}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{company.name}</Text>
+            {company.ticker ? <Text style={styles.ticker}>{company.ticker}</Text> : null}
+          </View>
+          <Text style={styles.meta}>
+            {company.stage} · {company.therapeuticArea}
+          </Text>
+        </View>
       </View>
-      <Text style={styles.meta}>
-        {company.stage} · {company.therapeuticArea}
-      </Text>
       <Text style={styles.oneLiner}>{company.oneLiner}</Text>
       <View style={styles.footerRow}>
         <EvidenceBadge level={company.confidence} />
@@ -38,20 +44,26 @@ export default function CompanyCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
   headerRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.xs,
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  identityText: {
+    marginLeft: spacing.sm,
+    flexShrink: 1,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   name: {
     ...typography.heading,
+    fontSize: 16,
     color: colors.textPrimary,
     flexShrink: 1,
   },
@@ -64,7 +76,7 @@ const styles = StyleSheet.create({
   meta: {
     ...typography.caption,
     color: colors.textTertiary,
-    marginBottom: spacing.xs,
+    marginTop: 1,
   },
   oneLiner: {
     ...typography.body,

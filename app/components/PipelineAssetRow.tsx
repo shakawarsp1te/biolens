@@ -34,15 +34,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     backgroundColor: colors.surfaceRaised,
-    borderColor: colors.border,
-    borderWidth: 1,
     borderRadius: radii.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   stagePill: {
     backgroundColor: colors.accentMuted,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
     alignSelf: "flex-start",

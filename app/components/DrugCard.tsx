@@ -29,9 +29,7 @@ export default function DrugCard({ drug }: { drug: DrugSummary }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -43,14 +41,15 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.heading,
+    fontSize: 16,
     color: colors.textPrimary,
     flexShrink: 1,
   },
   phasePill: {
     backgroundColor: colors.accentMuted,
-    borderRadius: radii.sm,
-    paddingVertical: 2,
-    paddingHorizontal: spacing.xs,
+    borderRadius: radii.pill,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
     marginLeft: spacing.sm,
   },
   phaseText: {
