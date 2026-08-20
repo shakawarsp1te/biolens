@@ -19,3 +19,4 @@ api/.env
 .claude/
 CLAUDE.md
 AGENTS.md
+.Rhistory

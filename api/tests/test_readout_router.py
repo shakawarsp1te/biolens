@@ -1,10 +1,12 @@
 """
 Router-level tests for POST /analyze/readout.
 
-test_returns_503_when_no_provider_configured is a genuine (not mocked)
-integration test — it relies on ANTHROPIC_API_KEY actually being unset in
-this test environment, exercising the real NotConfiguredProvider path end
-to end through the router.
+All provider-dependent behavior is monkeypatched, deliberately never
+dependent on whether a real ANTHROPIC_API_KEY happens to be configured in
+this environment — a test suite that behaves differently (or makes real,
+billed API calls) depending on ambient .env state is a bug, not a feature.
+See tests/test_readout_extraction.py and test_llm_provider.py for that
+boundary: this file only checks router-level wiring and status-code mapping.
 """
 
 from fastapi.testclient import TestClient
@@ -26,11 +28,15 @@ def test_rejects_whitespace_only_text():
     assert response.status_code == 422
 
 
-def test_returns_503_when_no_provider_configured():
-    # Real (unmocked) path: no ANTHROPIC_API_KEY is set in this test
-    # environment, so get_llm_provider() returns NotConfiguredProvider,
-    # which raises RuntimeError — the router should surface that as 503,
-    # not crash with an unhandled exception.
+def test_returns_503_when_no_provider_configured(monkeypatch):
+    # Forces the RuntimeError NotConfiguredProvider raises, rather than
+    # relying on ANTHROPIC_API_KEY actually being unset — see this file's
+    # module docstring for why that would be fragile.
+    async def fake_extract_readout(text, *, provider=None, max_repair_attempts=2):
+        raise RuntimeError("No LLM provider is configured yet.")
+
+    monkeypatch.setattr(readout_router_module, "extract_readout", fake_extract_readout)
+
     response = client.post("/analyze/readout", json={"text": "Some readout text."})
     assert response.status_code == 503
 

@@ -65,7 +65,7 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 - [x] Structured JSON output (Pydantic-validated) — via Anthropic's native `messages.parse(output_format=...)`
 - [x] Retry-with-repair on malformed model output — orchestration logic thoroughly tested against a fake provider
 
-**Not yet verified live** — no `ANTHROPIC_API_KEY` available. `AnthropicProvider` (`api/app/services/llm.py`) is written to the documented SDK surface but has never actually called the API. Everything downstream of that call (retry-with-repair, the router, the Pydantic validators) is tested against a `FakeLLMProvider` double, which proves BioLens's own logic but not the real Anthropic integration. Re-verify end-to-end the first time a real key is added to `api/.env`.
+**Verified live** (Aug 19, 2026) — `AnthropicProvider` confirmed against the real API once a key was added. Real test: fed the model a plain-text readout mentioning Cardiff Oncology/onvansertib/NCT06106308 but *not* its target; it correctly extracted everything stated and left `target: null` with a note explaining why, rather than filling it in from its own knowledge of onvansertib. That's the "never invent" instruction actually holding under a real call, not just in a mocked test.
 
 ## Phase 6 — Deterministic Statistics Parser (Days 18–20)
 
@@ -87,7 +87,7 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 - [x] Confidence labeling (categorical only)
 - [x] Evidence classification: Confirmatory Positive / Encouraging Signal / Inconclusive / Negative on Primary Endpoint — built as a **deterministic** rule-based classifier (BUILD_BRIEF.txt §41: "deterministic before LLM"), not an LLM judgment call; fully tested, no external dependency
 
-**Not yet verified live** — same gap as Phase 5: no `ANTHROPIC_API_KEY`, so `generate_interpretation`'s actual Anthropic call is untested. `classify_evidence` needs no LLM and is fully verified. Re-verify `generate_interpretation` the first time a real key is added.
+**Verified live** (Aug 19, 2026) — real call produced properly-separated, well-hedged INTERPRETATION and SPECULATION claims (14 total) on a real Cardiff Oncology readout, every one categorically confidence-labeled, cited, and free of investment language; `evidence_classification` came back `inconclusive`, correctly, since `primary_endpoint_met` wasn't supplied.
 
 ## Phase 8 — Discover (Days 23–24)
 

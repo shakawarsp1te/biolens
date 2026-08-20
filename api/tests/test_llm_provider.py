@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.config import Settings, get_settings
+from app.core.config import Settings
 from app.models.domain import ReadoutExtraction
 from app.services.llm import AnthropicProvider, NotConfiguredProvider, get_llm_provider
 
@@ -58,10 +58,3 @@ def test_get_llm_provider_returns_not_configured_for_unknown_provider(monkeypatc
         lambda: Settings(llm_provider="some-future-provider", anthropic_api_key="sk-ant-fake"),
     )
     assert isinstance(get_llm_provider(), NotConfiguredProvider)
-
-
-def test_default_settings_has_no_provider_configured():
-    # Sanity check on the actual .env this test suite runs against — the
-    # 503 test in test_readout_router.py depends on this being true.
-    settings = get_settings()
-    assert settings.anthropic_api_key == "" or settings.llm_provider != "anthropic"
