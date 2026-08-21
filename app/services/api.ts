@@ -53,6 +53,33 @@ async function apiGet<T>(
   return response.json();
 }
 
+async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(
+      "Could not reach the BioLens API. Make sure the backend is running locally " +
+        "(cd api && uvicorn app.main:app --reload) and EXPO_PUBLIC_API_BASE_URL points at it.",
+    );
+  }
+  if (!response.ok) {
+    let detail: string | undefined;
+    try {
+      const responseBody = await response.json();
+      detail = typeof responseBody?.detail === "string" ? responseBody.detail : undefined;
+    } catch {
+      // response body wasn't JSON — fall through to the generic message below
+    }
+    throw new ApiError(detail ?? `Request failed (HTTP ${response.status})`, response.status);
+  }
+  return response.json();
+}
+
 // --- ClinicalTrials.gov (api/app/routers/clinicaltrials.py) ---
 
 export interface TrialSearchResult {
@@ -105,4 +132,28 @@ export interface PubMedPackage {
 
 export function searchPubMedByDrug(name: string, retmax = 5): Promise<PubMedPackage> {
   return apiGet<PubMedPackage>("/pubmed/drug", { name, retmax });
+}
+
+// --- Ask BioLens (api/app/routers/ask.py) ---
+
+export interface AskBioLensResult {
+  answer: string;
+  has_sufficient_evidence: boolean;
+  source_ids_used: string[];
+}
+
+/** Scoped strictly to the facts/calculated/source_ids passed in — this is
+ * "ask about the current research package," never an open-web question. */
+export function askBioLens(params: {
+  question: string;
+  facts: string[];
+  calculated?: string[];
+  sourceIds?: string[];
+}): Promise<AskBioLensResult> {
+  return apiPost<AskBioLensResult>("/analyze/ask", {
+    question: params.question,
+    facts: params.facts,
+    calculated: params.calculated ?? [],
+    source_ids: params.sourceIds ?? [],
+  });
 }

@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
 import EvidenceBadge from "../../components/EvidenceBadge";
 import MockDataFlag from "../../components/MockDataFlag";
@@ -9,6 +10,7 @@ import ScreenShell from "../../components/ScreenShell";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, spacing, typography } from "../../constants/theme";
 import { MOCK_COMPANY_PROFILES } from "../../mocks/companyProfile";
+import { buildAskBioLensContext } from "../../utils/askBiolensContext";
 
 /**
  * Company profile screen (BUILD_BRIEF.txt §18-21): BioLens Summary ->
@@ -23,6 +25,13 @@ import { MOCK_COMPANY_PROFILES } from "../../mocks/companyProfile";
 export default function CompanyProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const company = id ? MOCK_COMPANY_PROFILES[id] : undefined;
+  // Hooks must run unconditionally on every render (even before the
+  // not-found early return below), since `id` can change across renders of
+  // the same mounted screen as the user navigates between profiles.
+  const askContext = useMemo(
+    () => (company ? buildAskBioLensContext(company) : { facts: [], sourceIds: [] }),
+    [company],
+  );
 
   if (!company) {
     return (
@@ -71,6 +80,13 @@ export default function CompanyProfileScreen() {
 
       <Section title="Thesis Map">
         <ThesisMap data={company.thesisMap} />
+      </Section>
+
+      <Section title="Ask BioLens">
+        <Text style={styles.askSubtitle}>
+          Answers are grounded strictly in what&apos;s on this page — nothing from the open web.
+        </Text>
+        <AskBioLensBox facts={askContext.facts} sourceIds={askContext.sourceIds} />
       </Section>
     </ScreenShell>
   );
@@ -130,6 +146,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     lineHeight: 22,
+    marginBottom: spacing.sm,
+  },
+  askSubtitle: {
+    ...typography.caption,
+    color: colors.textTertiary,
     marginBottom: spacing.sm,
   },
 });

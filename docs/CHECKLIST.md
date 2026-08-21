@@ -107,9 +107,15 @@ Companion to `PLAN.md`. Check items off as completed. Do not start a later phase
 
 ## Phase 10 — Ask BioLens (Day 26)
 
-- [ ] RAG scoped strictly to current research package (no open-web fallback)
-- [ ] Explicit "not enough verified information" fallback response
-- [ ] No hallucinated gap-filling
+- [x] RAG scoped strictly to current research package (no open-web fallback) — `ask_biolens()` builds its prompt only from the caller's `facts`/`calculated`/`source_ids`; the system prompt instructs "never your own general knowledge," and `_validate_citations()` catches the one concretely-checkable failure mode (citing a `source_id` outside the given package) with a retry-with-repair loop, same pattern as Phases 6/7/9
+- [x] Explicit "not enough verified information" fallback response — exact required sentence (`INSUFFICIENT_EVIDENCE_MESSAGE`), never trusted to the model's own wording: substituted verbatim by the service whenever `has_sufficient_evidence` is false, and an empty research package short-circuits to it deterministically before any LLM call is made at all (§41 "deterministic before LLM")
+- [x] No hallucinated gap-filling — same fabricated-citation retry-with-repair as above; `AskBioLensError` raised (→ 422) if the model still can't stay inside the given sources after `max_repair_attempts`
+
+Backend: `api/app/services/ask_biolens.py`, `POST /analyze/ask` (`api/app/routers/ask.py`), 16 tests (9 service + router-level 6, plus the request-model validation test) all passing against a `FakeLLMProvider`.
+
+Mobile: `AskBioLensBox` (question input + 3 example-question chips + loading/error/answer states) now lives at the bottom of every company profile screen. `utils/askBiolensContext.ts` builds the `facts`/`source_ids` package from that company's own profile data (BioLens Summary, Why It Matters, each pipeline asset's target/modality/disease/stage/trial IDs) — so each company's Ask BioLens is grounded in that company's own page, not a shared pool.
+
+**Verified live** (Aug 20, 2026) — real end-to-end run against Cardiff Oncology's profile with a real `uvicorn` backend + Expo web preview, real `ANTHROPIC_API_KEY`, no mocking: asking "How strong is this trial?" returned a thoughtful, correctly-hedged answer citing `NCT06106308` (the trial's real source ID) and explicitly noting the profile is mock data; asking "Who is the CEO of Cardiff Oncology?" — a real question the given package can't answer — correctly triggered the exact required insufficient-evidence sentence rather than guessing. Both responses confirmed rendering in their distinct UI states via screenshot.
 
 ## Phase 11 — Cold-Start Content (Day 27)
 
