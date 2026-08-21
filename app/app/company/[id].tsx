@@ -7,6 +7,7 @@ import EvidenceBadge from "../../components/EvidenceBadge";
 import MockDataFlag from "../../components/MockDataFlag";
 import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
+import StockQuoteCard from "../../components/StockQuoteCard";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, spacing, typography } from "../../constants/theme";
 import { MOCK_COMPANY_PROFILES } from "../../mocks/companyProfile";
@@ -49,6 +50,7 @@ export default function CompanyProfileScreen() {
       subtitle={`${company.ticker ? company.ticker + " · " : ""}${company.status}`}
     >
       {company.isMockData ? <MockDataFlag /> : null}
+      {company.ticker ? <StockQuoteCard key={company.ticker} ticker={company.ticker} /> : null}
 
       <View style={styles.identityRow}>
         <Avatar name={company.name} size={44} />

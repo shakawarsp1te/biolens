@@ -157,3 +157,37 @@ export function askBioLens(params: {
     source_ids: params.sourceIds ?? [],
   });
 }
+
+// --- Market data (api/app/routers/market.py) ---
+
+export interface StockQuote {
+  ticker: string;
+  company_name: string | null;
+  price: number;
+  currency: string | null;
+  change: number;
+  change_percent: number | null;
+  previous_close: number;
+  day_high: number | null;
+  day_low: number | null;
+  fifty_two_week_high: number | null;
+  fifty_two_week_low: number | null;
+  volume: number | null;
+  exchange: string | null;
+  market_time: string | null;
+}
+
+/** Factual current price for a real ticker — never paired with buy/sell/
+ * price-target framing anywhere it's rendered. Returns null (not a thrown
+ * ApiError) on a 404, since "no quote available" is a normal, expected
+ * outcome for a private company or an unrecognized ticker — every caller
+ * should treat it exactly like Ask BioLens's "insufficient evidence": a
+ * plain empty state, not an error banner. */
+export async function getStockQuote(ticker: string): Promise<StockQuote | null> {
+  try {
+    return await apiGet<StockQuote>(`/market/quote/${encodeURIComponent(ticker)}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}

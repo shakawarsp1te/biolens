@@ -36,6 +36,29 @@ export const colors = {
   evidenceInconclusive: "#C9B27A",
   evidenceNegative: "#8A8F98",
   mockDataBanner: "#4A3F2A",
+  // Real market price movement (app/services/api.ts's StockQuote) — the one
+  // deliberate exception to "no green/red semantics" elsewhere in this
+  // theme, because a stock's actual price change is a plain fact, not a
+  // buy/sell signal BioLens is making. Kept muted, not neon, to match the
+  // rest of the palette rather than reading as an alert.
+  gain: "#7FB69A",
+  loss: "#C97B7B",
+} as const;
+
+/**
+ * Loaded via useFonts() in app/_layout.tsx (root layout gates rendering
+ * until these resolve). Space Grotesk for anything with personality —
+ * headlines, hero numbers, the wordmark — instead of the platform default
+ * sans-serif every other app (and every quick AI-built prototype) reaches
+ * for; JetBrains Mono for anything tabular (prices, percentages, trial
+ * stats) so digits actually line up instead of a proportional font's
+ * variable-width numerals shifting a price around as it updates.
+ */
+export const fontFamily = {
+  display: "SpaceGrotesk_700Bold",
+  displayMedium: "SpaceGrotesk_600SemiBold",
+  mono: "JetBrainsMono_600SemiBold",
+  monoBold: "JetBrainsMono_700Bold",
 } as const;
 
 export const spacing = {
@@ -61,9 +84,13 @@ export const radii = {
  * everything around them, not from a subtle scale.
  */
 export const typography = {
-  hero: { fontSize: 40, fontWeight: "800" as const, letterSpacing: -0.5 },
-  title: { fontSize: 26, fontWeight: "800" as const, letterSpacing: -0.3 },
-  heading: { fontSize: 18, fontWeight: "700" as const },
+  hero: { fontSize: 40, fontFamily: fontFamily.display, letterSpacing: -0.5 },
+  title: { fontSize: 26, fontFamily: fontFamily.display, letterSpacing: -0.3 },
+  heading: { fontSize: 18, fontFamily: fontFamily.displayMedium },
   body: { fontSize: 15, fontWeight: "400" as const, lineHeight: 21 },
   caption: { fontSize: 12, fontWeight: "600" as const, letterSpacing: 0.3 },
+  // Tabular numerals — opt in for anything showing a price, percentage, or
+  // stat that updates, so digits don't jitter in width as they change.
+  mono: { fontSize: 15, fontFamily: fontFamily.mono },
+  monoLarge: { fontSize: 22, fontFamily: fontFamily.monoBold, letterSpacing: -0.3 },
 };

@@ -20,6 +20,25 @@ type SearchState =
   | { status: "error"; message: string }
   | { status: "success"; trials: TrialSearchResult[]; papers: PubMedPaper[] };
 
+// A handful of real names from BioLens's own seed companies (see
+// mocks/companyProfile.ts) — every one of these actually returns something,
+// unlike a made-up placeholder query would.
+const SUGGESTED_QUERIES = [
+  "onvansertib",
+  "Cardiff Oncology",
+  "Xencor",
+  "Erasca",
+  "Janux Therapeutics",
+  "PLK1 inhibitor",
+];
+
+// How long to hold off hiding the suggestions dropdown after the input
+// blurs. On web, a tap on a suggestion fires the input's blur before the
+// suggestion's own onPress — hiding immediately would unmount the button
+// out from under the tap. Native doesn't have this race, but the same
+// delay is harmless there.
+const BLUR_HIDE_DELAY_MS = 150;
+
 /**
  * Live search against the real backend (ClinicalTrials.gov sponsor +
  * intervention search, PubMed drug search — api/app/routers/clinicaltrials.py
@@ -34,11 +53,31 @@ type SearchState =
 export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<SearchState>({ status: "idle" });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  const blurTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function runSearch() {
-    const trimmed = query.trim();
+  function handleFocus() {
+    if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    setShowSuggestions(true);
+  }
+
+  function handleBlur() {
+    blurTimeout.current = setTimeout(() => setShowSuggestions(false), BLUR_HIDE_DELAY_MS);
+  }
+
+  function selectSuggestion(text: string) {
+    setShowSuggestions(false);
+    setQuery(text);
+    runSearch(text);
+  }
+
+  async function runSearch(overrideQuery?: string) {
+    const trimmed = (overrideQuery ?? query).trim();
     if (!trimmed) return;
+    setShowSuggestions(false);
     setState({ status: "loading" });
+    setRecentQueries((prev) => [trimmed, ...prev.filter((q) => q !== trimmed)].slice(0, 5));
 
     const [sponsorResult, interventionResult, papersResult] = await Promise.allSettled([
       searchTrialsBySponsor(trimmed),
@@ -77,7 +116,9 @@ export default function SearchScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={runSearch}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onSubmitEditing={() => runSearch()}
           placeholder="Try a drug or company, e.g. onvansertib"
           placeholderTextColor={colors.textTertiary}
           style={styles.input}
@@ -94,14 +135,48 @@ export default function SearchScreen() {
             query.trim().length === 0 && styles.searchButtonDisabled,
             pressed && styles.searchButtonPressed,
           ]}
-          onPress={runSearch}
+          onPress={() => runSearch()}
           disabled={query.trim().length === 0}
         >
           <Text style={styles.searchButtonText}>Search</Text>
         </Pressable>
       </View>
 
-      {state.status === "idle" ? (
+      {showSuggestions ? (
+        <View style={styles.suggestionsCard}>
+          {recentQueries.length > 0 ? (
+            <>
+              <Text style={styles.suggestionsLabel}>Recent</Text>
+              <View style={styles.suggestionChips}>
+                {recentQueries.map((text) => (
+                  <Pressable
+                    key={`recent-${text}`}
+                    onPress={() => selectSuggestion(text)}
+                    style={styles.suggestionChip}
+                  >
+                    <Ionicons name="time-outline" size={13} color={colors.textTertiary} />
+                    <Text style={styles.suggestionChipText}>{text}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+          <Text style={styles.suggestionsLabel}>Try searching</Text>
+          <View style={styles.suggestionChips}>
+            {SUGGESTED_QUERIES.filter((text) => !recentQueries.includes(text)).map((text) => (
+              <Pressable
+                key={text}
+                onPress={() => selectSuggestion(text)}
+                style={styles.suggestionChip}
+              >
+                <Text style={styles.suggestionChipText}>{text}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!showSuggestions && state.status === "idle" ? (
         <Text style={styles.hint}>
           Search hits the real ClinicalTrials.gov and PubMed APIs directly — no seed data needed.
         </Text>
@@ -143,7 +218,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceRaised,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  suggestionsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.md,
     marginBottom: spacing.lg,
+  },
+  suggestionsLabel: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+  suggestionChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  suggestionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm + 2,
+  },
+  suggestionChipText: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   searchIcon: {
     marginRight: spacing.sm,

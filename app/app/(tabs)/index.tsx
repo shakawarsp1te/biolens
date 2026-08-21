@@ -8,7 +8,7 @@ import { MOCK_EVENTS } from "../../mocks/phase1Preview";
 // mock data as real — see PLAN.md working agreements.
 export default function HomeScreen() {
   return (
-    <ScreenShell title="The Frontier" subtitle="What's moving biotechnology forward today?">
+    <ScreenShell brand title="The Frontier" subtitle="What's moving biotechnology forward today?">
       {MOCK_EVENTS.map((event) => (
         <EventCard key={event.id} event={event} />
       ))}
