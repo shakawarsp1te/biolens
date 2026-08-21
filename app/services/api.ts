@@ -9,14 +9,29 @@
  * string is all a GET query string needs.
  */
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   status?: number;
-  constructor(message: string, status?: number) {
+  /** Populated only when the backend's `detail` was a list of strings (e.g.
+   * /auth/signup's password-complexity violations) rather than one message
+   * — callers that want to render a checklist can use this instead of the
+   * flattened `message`. */
+  violations?: string[];
+  constructor(message: string, status?: number, violations?: string[]) {
     super(message);
     this.status = status;
+    this.violations = violations;
   }
+}
+
+function parseErrorDetail(body: unknown): { message?: string; violations?: string[] } {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return { message: detail };
+  if (Array.isArray(detail) && detail.every((item) => typeof item === "string")) {
+    return { message: detail.join(" "), violations: detail as string[] };
+  }
+  return {};
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -29,11 +44,12 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 async function apiGet<T>(
   path: string,
   params: Record<string, string | number | undefined> = {},
+  headers: Record<string, string> = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}${buildQuery(params)}`;
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { headers });
   } catch {
     throw new ApiError(
       "Could not reach the BioLens API. Make sure the backend is running locally " +
@@ -41,24 +57,31 @@ async function apiGet<T>(
     );
   }
   if (!response.ok) {
-    let detail: string | undefined;
+    let parsed: { message?: string; violations?: string[] } = {};
     try {
-      const body = await response.json();
-      detail = typeof body?.detail === "string" ? body.detail : undefined;
+      parsed = parseErrorDetail(await response.json());
     } catch {
       // response body wasn't JSON — fall through to the generic message below
     }
-    throw new ApiError(detail ?? `Request failed (HTTP ${response.status})`, response.status);
+    throw new ApiError(
+      parsed.message ?? `Request failed (HTTP ${response.status})`,
+      response.status,
+      parsed.violations,
+    );
   }
   return response.json();
 }
 
-async function apiPost<T>(path: string, body: unknown): Promise<T> {
+async function apiPost<T>(
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
     });
   } catch {
@@ -68,14 +91,17 @@ async function apiPost<T>(path: string, body: unknown): Promise<T> {
     );
   }
   if (!response.ok) {
-    let detail: string | undefined;
+    let parsed: { message?: string; violations?: string[] } = {};
     try {
-      const responseBody = await response.json();
-      detail = typeof responseBody?.detail === "string" ? responseBody.detail : undefined;
+      parsed = parseErrorDetail(await response.json());
     } catch {
       // response body wasn't JSON — fall through to the generic message below
     }
-    throw new ApiError(detail ?? `Request failed (HTTP ${response.status})`, response.status);
+    throw new ApiError(
+      parsed.message ?? `Request failed (HTTP ${response.status})`,
+      response.status,
+      parsed.violations,
+    );
   }
   return response.json();
 }
@@ -190,4 +216,71 @@ export async function getStockQuote(ticker: string): Promise<StockQuote | null> 
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
+}
+
+export type ChartRange = "1D" | "1W" | "1M" | "3M" | "1Y";
+
+export interface StockHistoryPoint {
+  /** Unix seconds. */
+  time: number;
+  close: number;
+}
+
+export interface StockHistory {
+  ticker: string;
+  range: ChartRange;
+  points: StockHistoryPoint[];
+}
+
+export async function getStockHistory(
+  ticker: string,
+  range: ChartRange,
+): Promise<StockHistory | null> {
+  try {
+    return await apiGet<StockHistory>(`/market/history/${encodeURIComponent(ticker)}`, { range });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+// --- Accounts (api/app/routers/auth.py) ---
+
+export interface SignUpResponse {
+  message: string;
+  email: string;
+  /** Only ever set when no real email delivery is configured on the
+   * backend yet (ConsoleEmailProvider) — lets the app offer a "continue"
+   * shortcut in dev instead of requiring a real inbox. Never set once real
+   * SMTP is configured, so this can never leak a usable token in
+   * production. */
+  dev_verification_token: string | null;
+}
+
+export function signUp(email: string, password: string): Promise<SignUpResponse> {
+  return apiPost<SignUpResponse>("/auth/signup", { email, password });
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  is_verified: boolean;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}
+
+export function logIn(email: string, password: string): Promise<LoginResponse> {
+  return apiPost<LoginResponse>("/auth/login", { email, password });
+}
+
+export function getMe(token: string): Promise<AuthUser> {
+  return apiGet<AuthUser>("/auth/me", {}, { Authorization: `Bearer ${token}` });
+}
+
+export function resendVerification(email: string): Promise<{ message: string }> {
+  return apiPost<{ message: string }>("/auth/resend-verification", { email });
 }

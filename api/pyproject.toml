@@ -10,6 +10,12 @@ select = ["E", "F", "I", "B"]
 # wrapping them mid-sentence would hurt readability more than it helps.
 "db/seed/generate_oncology_seed.py" = ["E501"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's own idiom is `Depends(x)` as a parameter default (it's how
+# dependency injection is declared) — B008 otherwise flags every route
+# that takes an auth dependency.
+extend-immutable-calls = ["fastapi.Depends"]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]

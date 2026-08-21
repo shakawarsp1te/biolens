@@ -31,6 +31,18 @@ from app.services.cache import CacheStore, get_cache_store
 # minutes. 60s keeps repeated views of the same profile cheap without
 # showing a meaningfully out-of-date number.
 _QUOTE_CACHE_TTL_SECONDS = 60.0
+_HISTORY_CACHE_TTL_SECONDS = 300.0
+
+# Chart range -> Yahoo's (range, interval) query params. Intraday intervals
+# (5m/15m) only work for short Yahoo ranges, which is why 1D/1W get their
+# own finer-grained interval instead of everything using daily bars.
+CHART_RANGES: dict[str, tuple[str, str]] = {
+    "1D": ("1d", "5m"),
+    "1W": ("5d", "15m"),
+    "1M": ("1mo", "1d"),
+    "3M": ("3mo", "1d"),
+    "1Y": ("1y", "1d"),
+}
 
 
 def _epoch_to_iso(epoch_seconds: int | None) -> str | None:
@@ -94,6 +106,64 @@ class MarketDataClient:
 
         await self._cache.set(cache_key, quote)
         return quote
+
+    async def get_history(self, ticker: str, chart_range: str) -> dict[str, Any] | None:
+        """Historical close prices for `ticker` over `chart_range` (one of
+        CHART_RANGES's keys), or None on any failure — same "graceful
+        degradation, never an error" contract as get_quote."""
+        if chart_range not in CHART_RANGES:
+            return None
+        yahoo_range, yahoo_interval = CHART_RANGES[chart_range]
+
+        cache_key = f"market:history:{ticker.upper()}:{chart_range}"
+        cached = await self._cache.get(cache_key)
+        fresh_cache_hit = cached is not None and (
+            time.time() - cached.fetched_at < _HISTORY_CACHE_TTL_SECONDS
+        )
+        if fresh_cache_hit:
+            return cached.value
+
+        assert self._http_client is not None, "use `async with MarketDataClient() as client:`"
+        try:
+            response = await self._http_client.get(
+                f"/v8/finance/chart/{ticker}",
+                params={"range": yahoo_range, "interval": yahoo_interval},
+            )
+        except httpx.HTTPError:
+            return cached.value if cached is not None else None
+
+        if response.status_code != 200:
+            return cached.value if cached is not None else None
+
+        history = _parse_history_response(response, ticker=ticker, chart_range=chart_range)
+        if history is None:
+            return cached.value if cached is not None else None
+
+        await self._cache.set(cache_key, history)
+        return history
+
+
+def _parse_history_response(
+    response: httpx.Response, *, ticker: str, chart_range: str
+) -> dict[str, Any] | None:
+    try:
+        payload = response.json()
+        result = payload["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        closes = result["indicators"]["quote"][0]["close"]
+        symbol = result["meta"].get("symbol") or ticker.upper()
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+
+    points = [
+        {"time": t, "close": round(c, 4)}
+        for t, c in zip(timestamps, closes, strict=False)
+        if c is not None
+    ]
+    if not points:
+        return None
+
+    return {"ticker": symbol, "range": chart_range, "points": points}
 
 
 def _parse_chart_response(

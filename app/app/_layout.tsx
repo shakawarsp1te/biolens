@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { colors } from "../constants/theme";
+import { AuthProvider } from "../context/AuthContext";
 import { WatchlistProvider } from "../context/WatchlistContext";
 
 export default function RootLayout() {
@@ -27,23 +28,46 @@ export default function RootLayout() {
   }
 
   return (
-    <WatchlistProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="company/[id]"
-          options={{
-            headerShown: true,
-            title: "",
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.textPrimary,
-            headerShadowVisible: false,
-          }}
-        />
-      </Stack>
-    </WatchlistProvider>
+    <AuthProvider>
+      <WatchlistProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="company/[id]"
+            options={{
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.textPrimary,
+              headerShadowVisible: false,
+            }}
+          />
+          <Stack.Screen name="stock-detail" options={{ presentation: "modal" }} />
+          <Stack.Screen
+            name="auth/sign-up"
+            options={{
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.textPrimary,
+              headerShadowVisible: false,
+            }}
+          />
+          <Stack.Screen
+            name="auth/log-in"
+            options={{
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.textPrimary,
+              headerShadowVisible: false,
+            }}
+          />
+        </Stack>
+      </WatchlistProvider>
+    </AuthProvider>
   );
 }

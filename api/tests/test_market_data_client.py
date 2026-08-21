@@ -124,6 +124,80 @@ async def test_malformed_response_returns_none_instead_of_raising():
     assert quote is None
 
 
+CRDF_HISTORY_RESPONSE = {
+    "chart": {
+        "result": [
+            {
+                "meta": {"symbol": "CRDF"},
+                "timestamp": [1786714200, 1786715100, 1786716000],
+                "indicators": {
+                    "quote": [
+                        {
+                            "close": [0.9792, 0.9782, None],
+                            "open": [],
+                            "high": [],
+                            "low": [],
+                            "volume": [],
+                        }
+                    ]
+                },
+            }
+        ],
+        "error": None,
+    }
+}
+
+
+@pytest.mark.asyncio
+async def test_get_history_parses_points_and_drops_nulls():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v8/finance/chart/CRDF"
+        assert request.url.params["range"] == "5d"
+        assert request.url.params["interval"] == "15m"
+        return httpx.Response(200, json=CRDF_HISTORY_RESPONSE)
+
+    transport = RequestCountingTransport(handler)
+    http_client = httpx.AsyncClient(
+        base_url="https://query1.finance.yahoo.com", transport=transport
+    )
+
+    async with MarketDataClient(http_client=http_client, cache=InMemoryCacheStore()) as client:
+        history = await client.get_history("CRDF", "1W")
+
+    assert history is not None
+    assert history["ticker"] == "CRDF"
+    assert history["range"] == "1W"
+    # The trailing None close is dropped, not coerced to 0 or kept as null.
+    assert history["points"] == [
+        {"time": 1786714200, "close": 0.9792},
+        {"time": 1786715100, "close": 0.9782},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_history_rejects_unsupported_range():
+    async with MarketDataClient(cache=InMemoryCacheStore()) as client:
+        history = await client.get_history("CRDF", "10Y")
+    assert history is None
+
+
+@pytest.mark.asyncio
+async def test_get_history_second_call_within_ttl_is_cached():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=CRDF_HISTORY_RESPONSE)
+
+    transport = RequestCountingTransport(handler)
+    http_client = httpx.AsyncClient(
+        base_url="https://query1.finance.yahoo.com", transport=transport
+    )
+
+    async with MarketDataClient(http_client=http_client, cache=InMemoryCacheStore()) as client:
+        await client.get_history("CRDF", "1M")
+        await client.get_history("CRDF", "1M")
+
+    assert transport.request_count == 1
+
+
 @pytest.mark.asyncio
 async def test_network_error_falls_back_to_stale_cache_if_available():
     call_count = {"n": 0}

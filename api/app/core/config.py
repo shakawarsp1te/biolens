@@ -24,6 +24,31 @@ class Settings(BaseSettings):
     llm_provider: str = "anthropic"
     anthropic_api_key: str = ""
 
+    # Interim local account system (api/app/services/auth.py, user_store.py) —
+    # stands in for Supabase Auth until that's provisioned (db/migrations/
+    # 0001_init_schema.sql already assumes it via `auth.users`). Swapping to
+    # Supabase Auth later is a storage-layer + token-issuer change, not a
+    # rewrite of the signup/login/verification flow itself.
+    jwt_secret: str = "dev-only-insecure-secret-change-me"
+    jwt_expires_minutes: int = 60 * 24 * 7  # 7 days
+    user_db_path: str = "db/biolens_dev.sqlite3"
+    # Where verification links point — the API itself, since the link is
+    # opened directly in whatever browser the user's email client hands off
+    # to, not deep-linked into the Expo app at this stage.
+    api_public_base_url: str = "http://localhost:8000"
+
+    # Email delivery (api/app/services/email.py) — mirrors the LLMProvider
+    # pattern: ConsoleEmailProvider (logs the email, including the
+    # verification link, instead of sending it) is the default until real
+    # SMTP credentials are configured below, exactly like AnthropicProvider
+    # only activates once ANTHROPIC_API_KEY is set.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    email_from: str = "BioLens <no-reply@biolens.app>"
+
     # External data sources
     clinicaltrials_api_base: str = "https://clinicaltrials.gov/api/v2"
     pubmed_api_base: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"

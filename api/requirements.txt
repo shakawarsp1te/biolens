@@ -6,3 +6,6 @@ python-dotenv
 httpx
 supabase
 anthropic
+bcrypt
+aiosqlite
+PyJWT

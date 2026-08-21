@@ -12,6 +12,10 @@ api/**/__pycache__/
 api/.pytest_cache/
 api/.ruff_cache/
 api/.env
+# Interim local user store (api/app/services/user_store.py) — real password
+# hashes and email addresses live here today, ahead of Supabase Auth being
+# provisioned. Never committed, same as api/.env.
+api/db/*.sqlite3
 
 # --- general ---
 .DS_Store
