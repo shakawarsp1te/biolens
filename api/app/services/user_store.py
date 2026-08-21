@@ -47,6 +47,13 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
     expires_at TEXT NOT NULL,
     used_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+);
 """
 
 
@@ -139,6 +146,57 @@ class UserStore:
                 return None
             await db.execute(
                 "UPDATE email_verification_tokens SET used_at = ? WHERE token = ?",
+                (datetime.now(timezone.utc).isoformat(), token),
+            )
+            await db.commit()
+            return row["user_id"]
+
+    async def update_password(self, user_id: str, *, password_hash: str) -> None:
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+            )
+            await db.commit()
+
+    async def delete_user(self, user_id: str) -> None:
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            await db.execute("DELETE FROM email_verification_tokens WHERE user_id = ?", (user_id,))
+            await db.execute("DELETE FROM password_reset_tokens WHERE user_id = ?", (user_id,))
+            await db.commit()
+
+    async def create_password_reset_token(self, user_id: str, *, ttl_hours: int = 2) -> str:
+        # Shorter-lived than an email-verification token (24h) -- a password
+        # reset link is more sensitive if intercepted, so it expires sooner.
+        await self._ensure_initialized()
+        token = secrets.token_urlsafe(32)
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                "INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
+                (token, user_id, expires_at),
+            )
+            await db.commit()
+        return token
+
+    async def consume_password_reset_token(self, token: str) -> str | None:
+        """Same one-time-use + expiry semantics as consume_verification_token."""
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT * FROM password_reset_tokens WHERE token = ?", (token,)
+            )
+            row = await cursor.fetchone()
+            if row is None or row["used_at"] is not None:
+                return None
+            expires_at = datetime.fromisoformat(row["expires_at"])
+            if expires_at < datetime.now(timezone.utc):
+                return None
+            await db.execute(
+                "UPDATE password_reset_tokens SET used_at = ? WHERE token = ?",
                 (datetime.now(timezone.utc).isoformat(), token),
             )
             await db.commit()

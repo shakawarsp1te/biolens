@@ -22,9 +22,14 @@ import WatchButton from "./WatchButton";
 export default function DiscoveryCard({
   data,
   onExplore,
+  newActivityCount,
 }: {
   data: DiscoveryCardData;
   onExplore?: () => void;
+  /** Real count of ClinicalTrials.gov results for this company not seen on
+   * a previous visit (Watchlist screen only — see
+   * utils/watchlistFreshness.ts). Omitted everywhere else. */
+  newActivityCount?: number;
 }) {
   return (
     <View style={styles.card}>
@@ -48,6 +53,13 @@ export default function DiscoveryCard({
           </View>
         </View>
       </View>
+      {newActivityCount ? (
+        <View style={styles.newBadge}>
+          <Text style={styles.newBadgeText}>
+            {newActivityCount} new trial{newActivityCount === 1 ? "" : "s"} since your last visit
+          </Text>
+        </View>
+      ) : null}
       <Text style={styles.scoreExplanation}>{FRONTIER_SCORE_EXPLANATION}</Text>
 
       <Section title="Why it surfaced">
@@ -144,6 +156,18 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     letterSpacing: 0,
     marginBottom: spacing.md,
+  },
+  newBadge: {
+    backgroundColor: colors.accentMuted,
+    borderRadius: radii.pill,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    alignSelf: "flex-start",
+    marginBottom: spacing.sm,
+  },
+  newBadgeText: {
+    ...typography.caption,
+    color: colors.accent,
   },
   section: {
     marginTop: spacing.md,

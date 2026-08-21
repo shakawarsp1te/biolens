@@ -9,3 +9,4 @@ anthropic
 bcrypt
 aiosqlite
 PyJWT
+python-multipart

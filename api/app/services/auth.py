@@ -50,6 +50,14 @@ class EmailNotVerifiedError(ValueError):
     pass
 
 
+class IncorrectPasswordError(ValueError):
+    """Raised by change_password/delete_account when the caller's supplied
+    current password doesn't match -- distinct from InvalidCredentialsError
+    (login) only in name, to keep each router error mapping self-evident."""
+
+    pass
+
+
 @dataclass
 class SignUpResult:
     user_id: str
@@ -171,3 +179,104 @@ async def log_in(*, email: str, password: str, store: UserStore | None = None) -
         raise EmailNotVerifiedError("Please verify your email before logging in.")
     access_token = create_access_token(user_id=user.id, email=user.email)
     return LoginResult(access_token=access_token, user_id=user.id, email=user.email)
+
+
+def build_password_reset_email_bodies(*, reset_url: str) -> tuple[str, str]:
+    text_body = (
+        "Someone (hopefully you) requested a password reset for your BioLens account.\n\n"
+        "Choose a new password by opening this link:\n"
+        f"{reset_url}\n\n"
+        "This link expires in 2 hours and can only be used once. If you didn't request "
+        "this, you can safely ignore this email -- your password hasn't changed."
+    )
+    html_body = (
+        "<p>Someone (hopefully you) requested a password reset for your BioLens account.</p>"
+        f'<p><a href="{reset_url}">Choose a new password</a>.</p>'
+        "<p>This link expires in 2 hours and can only be used once. If you didn't request "
+        "this, you can safely ignore this email — your password hasn't changed.</p>"
+    )
+    return html_body, text_body
+
+
+@dataclass
+class PasswordResetRequestResult:
+    # Only ever populated by ConsoleEmailProvider, same rationale as
+    # SignUpResult.dev_verification_token.
+    dev_reset_token: str | None = None
+
+
+async def request_password_reset(
+    *,
+    email: str,
+    store: UserStore | None = None,
+    email_provider: EmailProvider | None = None,
+) -> PasswordResetRequestResult:
+    """Always returns successfully, whether or not the email exists --
+    callers must show the same generic "check your email" message either
+    way (see routers/auth.py), so this can never be used to probe which
+    emails have an account."""
+    store = store or get_user_store()
+    user = await store.get_user_by_email(email.strip())
+    if user is None:
+        return PasswordResetRequestResult()
+
+    token = await store.create_password_reset_token(user.id)
+    settings = get_settings()
+    reset_url = f"{settings.api_public_base_url}/auth/reset-password?token={token}"
+    html_body, text_body = build_password_reset_email_bodies(reset_url=reset_url)
+
+    email_provider = email_provider or get_email_provider()
+    await email_provider.send(
+        to=user.email,
+        subject="Reset your BioLens password",
+        html_body=html_body,
+        text_body=text_body,
+    )
+    dev_token = token if isinstance(email_provider, ConsoleEmailProvider) else None
+    return PasswordResetRequestResult(dev_reset_token=dev_token)
+
+
+async def reset_password(*, token: str, new_password: str, store: UserStore | None = None) -> bool:
+    """False for any invalid/expired/reused token (same non-distinguishing
+    behavior as verify_email) -- in that case new_password is never even
+    looked at. Once the token checks out it's consumed immediately (so it
+    can't be replayed), *then* the new password's complexity is checked;
+    a PasswordPolicyError here means the link is already spent and the user
+    needs to request a new one -- the same trade-off most real reset flows
+    make rather than adding a separate "peek without consuming" step."""
+    store = store or get_user_store()
+    user_id = await store.consume_password_reset_token(token)
+    if user_id is None:
+        return False
+    user = await store.get_user_by_id(user_id)
+    assert user is not None, "token referenced a user_id that no longer exists"
+    violations = validate_password(new_password, email=user.email)
+    if violations:
+        raise PasswordPolicyError(violations)
+    await store.update_password(user_id, password_hash=hash_password(new_password))
+    return True
+
+
+async def change_password(
+    *,
+    user_id: str,
+    current_password: str,
+    new_password: str,
+    store: UserStore | None = None,
+) -> None:
+    store = store or get_user_store()
+    user = await store.get_user_by_id(user_id)
+    if user is None or not verify_password_hash(current_password, user.password_hash):
+        raise IncorrectPasswordError("Current password is incorrect.")
+    violations = validate_password(new_password, email=user.email)
+    if violations:
+        raise PasswordPolicyError(violations)
+    await store.update_password(user_id, password_hash=hash_password(new_password))
+
+
+async def delete_account(*, user_id: str, password: str, store: UserStore | None = None) -> None:
+    store = store or get_user_store()
+    user = await store.get_user_by_id(user_id)
+    if user is None or not verify_password_hash(password, user.password_hash):
+        raise IncorrectPasswordError("Password is incorrect.")
+    await store.delete_user(user_id)

@@ -4,6 +4,7 @@ import { colors, radii, spacing, typography } from "../constants/theme";
 import { DrugSummary } from "../types/domain";
 import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
+import WatchButton from "./WatchButton";
 
 export default function DrugCard({ drug }: { drug: DrugSummary }) {
   return (
@@ -11,8 +12,11 @@ export default function DrugCard({ drug }: { drug: DrugSummary }) {
       {drug.isMockData ? <MockDataFlag /> : null}
       <View style={styles.headerRow}>
         <Text style={styles.name}>{drug.name}</Text>
-        <View style={styles.phasePill}>
-          <Text style={styles.phaseText}>{drug.phase}</Text>
+        <View style={styles.headerActions}>
+          <View style={styles.phasePill}>
+            <Text style={styles.phaseText}>{drug.phase}</Text>
+          </View>
+          <WatchButton entityType="drug" entityId={drug.id} size={18} />
         </View>
       </View>
       <Text style={styles.meta}>{drug.companyName}</Text>
@@ -45,12 +49,17 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     flexShrink: 1,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: spacing.sm,
+  },
   phasePill: {
     backgroundColor: colors.accentMuted,
     borderRadius: radii.pill,
     paddingVertical: 4,
     paddingHorizontal: spacing.sm,
-    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
   },
   phaseText: {
     ...typography.caption,

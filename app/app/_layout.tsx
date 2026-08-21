@@ -27,6 +27,16 @@ export default function RootLayout() {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
+  // Shared by every screen that wants a plain back-arrow header on the
+  // near-black canvas — company/[id] and every auth/* screen.
+  const barebackHeaderOptions = {
+    headerShown: true,
+    title: "",
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.textPrimary,
+    headerShadowVisible: false,
+  };
+
   return (
     <AuthProvider>
       <WatchlistProvider>
@@ -35,37 +45,14 @@ export default function RootLayout() {
           screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="company/[id]"
-            options={{
-              headerShown: true,
-              title: "",
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.textPrimary,
-              headerShadowVisible: false,
-            }}
-          />
+          <Stack.Screen name="company/[id]" options={barebackHeaderOptions} />
+          <Stack.Screen name="compare" options={barebackHeaderOptions} />
           <Stack.Screen name="stock-detail" options={{ presentation: "modal" }} />
-          <Stack.Screen
-            name="auth/sign-up"
-            options={{
-              headerShown: true,
-              title: "",
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.textPrimary,
-              headerShadowVisible: false,
-            }}
-          />
-          <Stack.Screen
-            name="auth/log-in"
-            options={{
-              headerShown: true,
-              title: "",
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.textPrimary,
-              headerShadowVisible: false,
-            }}
-          />
+          <Stack.Screen name="auth/sign-up" options={barebackHeaderOptions} />
+          <Stack.Screen name="auth/log-in" options={barebackHeaderOptions} />
+          <Stack.Screen name="auth/forgot-password" options={barebackHeaderOptions} />
+          <Stack.Screen name="auth/change-password" options={barebackHeaderOptions} />
+          <Stack.Screen name="auth/delete-account" options={barebackHeaderOptions} />
         </Stack>
       </WatchlistProvider>
     </AuthProvider>

@@ -108,6 +108,10 @@ export default function LogInScreen() {
         </Text>
       </Pressable>
 
+      <Pressable style={styles.linkRow} onPress={() => router.push("/auth/forgot-password")}>
+        <Text style={styles.linkText}>Forgot password?</Text>
+      </Pressable>
+
       <Pressable style={styles.linkRow} onPress={() => router.replace("/auth/sign-up")}>
         <Text style={styles.linkText}>Don&apos;t have an account? Sign up</Text>
       </Pressable>

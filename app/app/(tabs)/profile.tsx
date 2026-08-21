@@ -27,8 +27,20 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => router.push("/auth/change-password")}
+          >
+            <Text style={styles.secondaryButtonText}>Change password</Text>
+          </Pressable>
           <Pressable style={styles.secondaryButton} onPress={logOut}>
             <Text style={styles.secondaryButtonText}>Log out</Text>
+          </Pressable>
+          <Pressable
+            style={styles.dangerLink}
+            onPress={() => router.push("/auth/delete-account")}
+          >
+            <Text style={styles.dangerLinkText}>Delete account</Text>
           </Pressable>
         </View>
       ) : (
@@ -109,6 +121,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: "700",
     color: colors.textPrimary,
+  },
+  dangerLink: {
+    alignItems: "center",
+    marginTop: spacing.md,
+  },
+  dangerLinkText: {
+    ...typography.caption,
+    color: colors.loss,
   },
   disclaimer: {
     ...typography.caption,

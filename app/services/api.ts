@@ -72,7 +72,8 @@ async function apiGet<T>(
   return response.json();
 }
 
-async function apiPost<T>(
+async function apiSend<T>(
+  method: "POST" | "DELETE" | "PATCH",
   path: string,
   body: unknown,
   headers: Record<string, string> = {},
@@ -80,7 +81,7 @@ async function apiPost<T>(
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
     });
@@ -104,6 +105,14 @@ async function apiPost<T>(
     );
   }
   return response.json();
+}
+
+function apiPost<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
+  return apiSend<T>("POST", path, body, headers);
+}
+
+function apiDelete<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
+  return apiSend<T>("DELETE", path, body, headers);
 }
 
 // --- ClinicalTrials.gov (api/app/routers/clinicaltrials.py) ---
@@ -283,4 +292,38 @@ export function getMe(token: string): Promise<AuthUser> {
 
 export function resendVerification(email: string): Promise<{ message: string }> {
   return apiPost<{ message: string }>("/auth/resend-verification", { email });
+}
+
+export interface RequestPasswordResetResponse {
+  message: string;
+  /** Dev-only escape hatch, same rationale as SignUpResponse.dev_verification_token. */
+  dev_reset_token: string | null;
+}
+
+export function requestPasswordReset(email: string): Promise<RequestPasswordResetResponse> {
+  return apiPost<RequestPasswordResetResponse>("/auth/request-password-reset", { email });
+}
+
+/** Reset itself happens on a web page (GET/POST /auth/reset-password) opened
+ * from the email link — same pattern as email verification — so there's no
+ * client function for submitting it, only for requesting the link. */
+
+export function changePassword(
+  token: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  return apiPost<{ message: string }>(
+    "/auth/change-password",
+    { current_password: currentPassword, new_password: newPassword },
+    { Authorization: `Bearer ${token}` },
+  );
+}
+
+export function deleteAccount(token: string, password: string): Promise<{ message: string }> {
+  return apiDelete<{ message: string }>(
+    "/auth/me",
+    { password },
+    { Authorization: `Bearer ${token}` },
+  );
 }

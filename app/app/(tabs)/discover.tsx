@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import DiscoveryCard from "../../components/DiscoveryCard";
 import DrugCard from "../../components/DrugCard";
 import FilterPill from "../../components/FilterPill";
@@ -14,14 +14,17 @@ import { applyDiscoverFilters } from "../../utils/discoverFilters";
 
 // Phase 8: Discovery Card (BUILD_BRIEF.txt §54), the Frontier Score model,
 // and filter logic all built and tested on the backend
-// (api/app/services/frontier_score.py, discover.py). Stage and Target
-// filters are wired up here client-side against mock data, using the exact
-// same match rules as apply_discover_filters (utils/discoverFilters.ts) —
-// swapping in a real API call later shouldn't change this screen's behavior.
+// (api/app/services/frontier_score.py, discover.py). All four filters
+// (Therapeutic Area, Stage, Modality, Target) are wired up here client-side
+// against mock data, using the exact same match rules as
+// apply_discover_filters (utils/discoverFilters.ts) — swapping in a real
+// API call later shouldn't change this screen's behavior.
 export default function DiscoverScreen() {
   const router = useRouter();
   const [stage, setStage] = useState<TrialPhase | null>(null);
   const [target, setTarget] = useState<string | null>(null);
+  const [therapeuticArea, setTherapeuticArea] = useState<string | null>(null);
+  const [modality, setModality] = useState<string | null>(null);
 
   const stageOptions = useMemo(
     () => Array.from(new Set(MOCK_DISCOVERY_CARDS.map((card) => card.stage))),
@@ -31,14 +34,24 @@ export default function DiscoverScreen() {
     () => Array.from(new Set(MOCK_DISCOVERY_CARDS.flatMap((card) => card.targets))).sort(),
     [],
   );
+  const therapeuticAreaOptions = useMemo(
+    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.map((card) => card.therapeuticArea))).sort(),
+    [],
+  );
+  const modalityOptions = useMemo(
+    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.flatMap((card) => card.modalities))).sort(),
+    [],
+  );
 
   const filteredCards = useMemo(
     () =>
       applyDiscoverFilters(MOCK_DISCOVERY_CARDS, {
         stage: stage ?? undefined,
         target: target ?? undefined,
+        therapeuticArea: therapeuticArea ?? undefined,
+        modality: modality ?? undefined,
       }),
-    [stage, target],
+    [stage, target, therapeuticArea, modality],
   );
 
   return (
@@ -46,11 +59,41 @@ export default function DiscoverScreen() {
       title="Discover"
       subtitle="Emerging oncology companies, ranked by research activity — not investment attractiveness."
     >
+      <Text style={styles.sectionLabel}>Therapeutic Area</Text>
+      <View style={styles.pillRow}>
+        <FilterPill
+          label="All"
+          selected={therapeuticArea === null}
+          onPress={() => setTherapeuticArea(null)}
+        />
+        {therapeuticAreaOptions.map((option) => (
+          <FilterPill
+            key={option}
+            label={option}
+            selected={therapeuticArea === option}
+            onPress={() => setTherapeuticArea(option)}
+          />
+        ))}
+      </View>
+
       <Text style={styles.sectionLabel}>Stage</Text>
       <View style={styles.pillRow}>
         <FilterPill label="All" selected={stage === null} onPress={() => setStage(null)} />
         {stageOptions.map((option) => (
           <FilterPill key={option} label={option} selected={stage === option} onPress={() => setStage(option)} />
+        ))}
+      </View>
+
+      <Text style={styles.sectionLabel}>Modality</Text>
+      <View style={styles.pillRow}>
+        <FilterPill label="All" selected={modality === null} onPress={() => setModality(null)} />
+        {modalityOptions.map((option) => (
+          <FilterPill
+            key={option}
+            label={option}
+            selected={modality === option}
+            onPress={() => setModality(option)}
+          />
         ))}
       </View>
 
@@ -61,6 +104,10 @@ export default function DiscoverScreen() {
           <FilterPill key={option} label={option} selected={target === option} onPress={() => setTarget(option)} />
         ))}
       </View>
+
+      <Pressable style={styles.compareLink} onPress={() => router.push("/compare")}>
+        <Text style={styles.compareLinkText}>Compare two companies ›</Text>
+      </Pressable>
 
       <Text style={styles.sectionLabel}>Companies</Text>
       {filteredCards.length === 0 ? (
@@ -84,8 +131,9 @@ export default function DiscoverScreen() {
       </View>
 
       <Text style={styles.footnote}>
-        Therapeutic Area and Modality filters exist in the same backend logic (api/app/services/discover.py)
-        but are not surfaced here yet — Stage and Target are wired up as the first two to prove the pattern.
+        All four filter rows use the same match rules as api/app/services/discover.py, mirrored
+        client-side in utils/discoverFilters.ts. Therapeutic Area only has one real option today
+        since every seed company is oncology-focused — it&apos;ll do more work once coverage broadens.
       </Text>
     </ScreenShell>
   );
@@ -109,6 +157,15 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textTertiary,
     marginBottom: spacing.md,
+  },
+  compareLink: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  compareLinkText: {
+    ...typography.body,
+    color: colors.accent,
+    fontWeight: "700",
   },
   metricsGroup: {
     marginBottom: spacing.md,
