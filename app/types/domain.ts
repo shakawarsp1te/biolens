@@ -147,6 +147,26 @@ export interface CompanyProfile {
   isMockData?: boolean;
 }
 
+/**
+ * The shape GET /companies and GET /companies/{id} actually return --
+ * every field from both DiscoveryCardData (the Discover-card view) and
+ * CompanyProfile (the full profile view), since the backend serves one
+ * underlying document as both (api/app/models/company.py). Every screen
+ * that used to import static mock data now gets it from CompaniesContext
+ * instead, typed as this.
+ */
+export interface CompanyRecord extends DiscoveryCardData, CompanyProfile {
+  /** "verified" -- WebSearch-verified manual research. "ai_drafted_unreviewed"
+   * -- assembled by the backend's auto-discovery pipeline from live
+   * ClinicalTrials.gov/PubMed data with an LLM only drafting narrative
+   * fields; not yet reviewed for accuracy. */
+  reviewStatus: "verified" | "ai_drafted_unreviewed";
+  source: "manual_research" | "auto_discovery";
+  createdAt: string;
+  updatedAt: string;
+  lastVerifiedAt: string | null;
+}
+
 export interface DrugSummary {
   id: string;
   name: string;

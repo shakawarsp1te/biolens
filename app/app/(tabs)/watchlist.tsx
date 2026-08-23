@@ -5,8 +5,8 @@ import DiscoveryCard from "../../components/DiscoveryCard";
 import ScreenShell from "../../components/ScreenShell";
 import WatchButton from "../../components/WatchButton";
 import { colors, radii, spacing, typography } from "../../constants/theme";
+import { useCompanies } from "../../context/CompaniesContext";
 import { useWatchlist } from "../../context/WatchlistContext";
-import { MOCK_DISCOVERY_CARDS } from "../../mocks/discoveryCards";
 import { searchTrialsBySponsor } from "../../services/api";
 import { findPipelineAssetByDrugId, findPipelineAssetsByTarget } from "../../utils/pipelineLookup";
 import { diffAndUpdateSeenTrials } from "../../utils/watchlistFreshness";
@@ -18,31 +18,35 @@ import { diffAndUpdateSeenTrials } from "../../utils/watchlistFreshness";
  * shows up (or disappears) here immediately, since all three screens read
  * the same context.
  *
- * Company lookup is against the Discover mock data since there's no live
- * `companies` table yet — the entries themselves (entityType/entityId)
- * already match that table's shape, so swapping this lookup for a real
- * fetch-by-id later doesn't change anything else about how this screen works.
- * Drugs and targets resolve through utils/pipelineLookup.ts, since there's
- * no standalone `drugs`/`targets` table yet either — every drug/target that
- * can be followed today comes from some company's own pipeline.
+ * Companies come from the live company list (CompaniesContext, backed by
+ * GET /companies) — the entries themselves (entityType/entityId) already
+ * match the real `companies` table's shape, so swapping this lookup for a
+ * direct Postgres-backed fetch later doesn't change anything else about
+ * how this screen works. Drugs and targets resolve through
+ * utils/pipelineLookup.ts against that same live list, since there's no
+ * standalone `drugs`/`targets` table yet either.
  */
 export default function WatchlistScreen() {
   const router = useRouter();
   const { entries, loading } = useWatchlist();
+  const { companies } = useCompanies();
 
   const watchedCompanies = entries
     .filter((entry) => entry.entityType === "company")
-    .map((entry) => MOCK_DISCOVERY_CARDS.find((card) => card.id === entry.entityId))
-    .filter((card): card is (typeof MOCK_DISCOVERY_CARDS)[number] => card !== undefined);
+    .map((entry) => companies.find((card) => card.id === entry.entityId))
+    .filter((card): card is (typeof companies)[number] => card !== undefined);
 
   const watchedDrugs = entries
     .filter((entry) => entry.entityType === "drug")
-    .map((entry) => findPipelineAssetByDrugId(entry.entityId))
+    .map((entry) => findPipelineAssetByDrugId(companies, entry.entityId))
     .filter((asset): asset is NonNullable<typeof asset> => asset !== undefined);
 
   const watchedTargets = entries
     .filter((entry) => entry.entityType === "target")
-    .map((entry) => ({ target: entry.entityId, assets: findPipelineAssetsByTarget(entry.entityId) }));
+    .map((entry) => ({
+      target: entry.entityId,
+      assets: findPipelineAssetsByTarget(companies, entry.entityId),
+    }));
 
   const nothingFollowed =
     watchedCompanies.length === 0 && watchedDrugs.length === 0 && watchedTargets.length === 0;

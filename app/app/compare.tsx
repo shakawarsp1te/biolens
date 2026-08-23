@@ -1,56 +1,68 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import FilterPill from "../components/FilterPill";
 import ScreenShell from "../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../constants/theme";
-import { MOCK_COMPANY_PROFILES } from "../mocks/companyProfile";
-import { MOCK_DISCOVERY_CARDS } from "../mocks/discoveryCards";
-import { FRONTIER_SCORE_EXPLANATION } from "../types/domain";
-
-// Only companies with both a full CompanyProfile and a Discover card (for
-// Frontier Score/stage/maturity) can be compared today — the same four
-// companies Discover shows.
-const COMPARABLE_IDS = MOCK_DISCOVERY_CARDS.map((card) => card.id).filter(
-  (id) => MOCK_COMPANY_PROFILES[id] !== undefined,
-);
+import { useCompanies } from "../context/CompaniesContext";
+import { CompanyRecord, FRONTIER_SCORE_EXPLANATION } from "../types/domain";
 
 /**
  * Side-by-side comparison of two companies' Frontier Score, stage, and
  * thesis — a spec-table layout (not two side-by-side cards) since two full
  * DiscoveryCards don't fit legibly on a phone-width screen. Reachable from
- * Discover's "Compare companies" link.
+ * Discover's "Compare companies" link. Every company from CompaniesContext
+ * already carries both the Discover-card fields and the full-profile
+ * fields (same underlying document — see app/models/company.py's
+ * docstring), so any two companies in the list can be compared, not just
+ * a hand-picked subset.
  */
 export default function CompareScreen() {
   const router = useRouter();
-  const [idA, setIdA] = useState<string>(COMPARABLE_IDS[0]);
-  const [idB, setIdB] = useState<string>(COMPARABLE_IDS[1] ?? COMPARABLE_IDS[0]);
+  const { companies, isLoading } = useCompanies();
+  // Explicit picks start empty; until the user taps a pill, fall back to
+  // the first two loaded companies -- a derived value computed at render
+  // time, not state an effect has to "correct" once the list loads.
+  const [idA, setIdA] = useState<string>("");
+  const [idB, setIdB] = useState<string>("");
+  const selectedIdA = idA || companies[0]?.id || "";
+  const selectedIdB = idB || companies[1]?.id || companies[0]?.id || "";
 
-  const companyA = useMemo(() => buildComparable(idA), [idA]);
-  const companyB = useMemo(() => buildComparable(idB), [idB]);
+  const companyA = useMemo(() => buildComparable(companies, selectedIdA), [companies, selectedIdA]);
+  const companyB = useMemo(() => buildComparable(companies, selectedIdB), [companies, selectedIdB]);
+
+  if (isLoading) {
+    return (
+      <ScreenShell title="Compare" subtitle="Loading companies…">
+        <View style={styles.centeredRow}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell title="Compare" subtitle="Frontier Score ranks research activity, not investment attractiveness.">
       <Text style={styles.pickerLabel}>Company A</Text>
       <View style={styles.pillRow}>
-        {COMPARABLE_IDS.map((id) => (
+        {companies.map((company) => (
           <FilterPill
-            key={id}
-            label={MOCK_COMPANY_PROFILES[id].name}
-            selected={idA === id}
-            onPress={() => setIdA(id)}
+            key={company.id}
+            label={company.name}
+            selected={selectedIdA === company.id}
+            onPress={() => setIdA(company.id)}
           />
         ))}
       </View>
 
       <Text style={styles.pickerLabel}>Company B</Text>
       <View style={styles.pillRow}>
-        {COMPARABLE_IDS.map((id) => (
+        {companies.map((company) => (
           <FilterPill
-            key={id}
-            label={MOCK_COMPANY_PROFILES[id].name}
-            selected={idB === id}
-            onPress={() => setIdB(id)}
+            key={company.id}
+            label={company.name}
+            selected={selectedIdB === company.id}
+            onPress={() => setIdB(company.id)}
           />
         ))}
       </View>
@@ -146,25 +158,28 @@ interface Comparable {
   keyRisk: string;
 }
 
-function buildComparable(id: string): Comparable | null {
-  const profile = MOCK_COMPANY_PROFILES[id];
-  const card = MOCK_DISCOVERY_CARDS.find((c) => c.id === id);
-  if (!profile || !card) return null;
+function buildComparable(companies: CompanyRecord[], id: string): Comparable | null {
+  const company = companies.find((c) => c.id === id);
+  if (!company) return null;
   return {
     id,
-    name: profile.name,
-    frontierScore: card.frontierScore,
-    stage: card.stage,
-    maturity: card.maturity,
-    confidence: profile.confidence,
-    pipelineCount: profile.pipeline.length,
-    primaryFocus: profile.primaryFocus,
-    oneSentence: card.oneSentenceSummary,
-    keyRisk: card.keyRisk,
+    name: company.name,
+    frontierScore: company.frontierScore,
+    stage: company.stage,
+    maturity: company.maturity,
+    confidence: company.confidence,
+    pipelineCount: company.pipeline.length,
+    primaryFocus: company.primaryFocus,
+    oneSentence: company.oneSentenceSummary,
+    keyRisk: company.keyRisk,
   };
 }
 
 const styles = StyleSheet.create({
+  centeredRow: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+  },
   pickerLabel: {
     ...typography.caption,
     color: colors.textTertiary,

@@ -9,6 +9,8 @@
  * string is all a GET query string needs.
  */
 
+import { CompanyRecord } from "../types/domain";
+
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -326,4 +328,22 @@ export function deleteAccount(token: string, password: string): Promise<{ messag
     { password },
     { Authorization: `Bearer ${token}` },
   );
+}
+
+// --- Companies (api/app/routers/companies.py) ---
+//
+// Replaces the old app/mocks/companyProfile.ts + discoveryCards.ts static
+// data. Real, server-side, and updatable without an app rebuild -- see
+// CompaniesContext for the shared fetch-once-and-cache layer every screen
+// actually uses instead of calling these directly.
+
+export function getCompanies(): Promise<CompanyRecord[]> {
+  return apiGet<CompanyRecord[]>("/companies");
+}
+
+export function getCompany(id: string): Promise<CompanyRecord | null> {
+  return apiGet<CompanyRecord>(`/companies/${encodeURIComponent(id)}`).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 }

@@ -3,7 +3,17 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import ask, auth, clinicaltrials, health, interpretation, market, pubmed, readout
+from app.routers import (
+    ask,
+    auth,
+    clinicaltrials,
+    companies,
+    health,
+    interpretation,
+    market,
+    pubmed,
+    readout,
+)
 
 # Without this, our own loggers (e.g. app.services.email's "biolens.email")
 # inherit the root logger's default WARNING level and their INFO messages —
@@ -33,3 +43,4 @@ app.include_router(interpretation.router)
 app.include_router(ask.router)
 app.include_router(market.router)
 app.include_router(auth.router)
+app.include_router(companies.router)

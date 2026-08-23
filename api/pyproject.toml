@@ -9,6 +9,7 @@ select = ["E", "F", "I", "B"]
 # Long descriptive strings (target/company/drug/indication text), not logic —
 # wrapping them mid-sentence would hurt readability more than it helps.
 "db/seed/generate_oncology_seed.py" = ["E501"]
+"app/seed_data/companies.py" = ["E501"]
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI's own idiom is `Depends(x)` as a parameter default (it's how

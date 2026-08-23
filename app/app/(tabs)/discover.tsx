@@ -1,58 +1,102 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import DiscoveryCard from "../../components/DiscoveryCard";
 import DrugCard from "../../components/DrugCard";
 import FilterPill from "../../components/FilterPill";
 import ScreenShell from "../../components/ScreenShell";
 import TrialMetric from "../../components/TrialMetric";
 import { colors, spacing, typography } from "../../constants/theme";
-import { MOCK_DISCOVERY_CARDS } from "../../mocks/discoveryCards";
-import { MOCK_DRUGS, MOCK_TRIAL_METRICS } from "../../mocks/phase1Preview";
-import { TrialPhase } from "../../types/domain";
+import { useCompanies } from "../../context/CompaniesContext";
+import { MOCK_TRIAL_METRICS } from "../../mocks/phase1Preview";
+import { DrugSummary, TrialPhase } from "../../types/domain";
 import { applyDiscoverFilters } from "../../utils/discoverFilters";
 
 // Phase 8: Discovery Card (BUILD_BRIEF.txt §54), the Frontier Score model,
 // and filter logic all built and tested on the backend
 // (api/app/services/frontier_score.py, discover.py). All four filters
 // (Therapeutic Area, Stage, Modality, Target) are wired up here client-side
-// against mock data, using the exact same match rules as
-// apply_discover_filters (utils/discoverFilters.ts) — swapping in a real
-// API call later shouldn't change this screen's behavior.
+// against the live company list from CompaniesContext (GET /companies),
+// using the exact same match rules as apply_discover_filters
+// (utils/discoverFilters.ts) — swapping to server-side filtering later
+// shouldn't change this screen's behavior.
 export default function DiscoverScreen() {
   const router = useRouter();
+  const { companies, isLoading, error } = useCompanies();
   const [stage, setStage] = useState<TrialPhase | null>(null);
   const [target, setTarget] = useState<string | null>(null);
   const [therapeuticArea, setTherapeuticArea] = useState<string | null>(null);
   const [modality, setModality] = useState<string | null>(null);
 
   const stageOptions = useMemo(
-    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.map((card) => card.stage))),
-    [],
+    () => Array.from(new Set(companies.map((card) => card.stage))),
+    [companies],
   );
   const targetOptions = useMemo(
-    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.flatMap((card) => card.targets))).sort(),
-    [],
+    () => Array.from(new Set(companies.flatMap((card) => card.targets))).sort(),
+    [companies],
   );
   const therapeuticAreaOptions = useMemo(
-    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.map((card) => card.therapeuticArea))).sort(),
-    [],
+    () => Array.from(new Set(companies.map((card) => card.therapeuticArea))).sort(),
+    [companies],
   );
   const modalityOptions = useMemo(
-    () => Array.from(new Set(MOCK_DISCOVERY_CARDS.flatMap((card) => card.modalities))).sort(),
-    [],
+    () => Array.from(new Set(companies.flatMap((card) => card.modalities))).sort(),
+    [companies],
   );
 
   const filteredCards = useMemo(
     () =>
-      applyDiscoverFilters(MOCK_DISCOVERY_CARDS, {
+      applyDiscoverFilters(companies, {
         stage: stage ?? undefined,
         target: target ?? undefined,
         therapeuticArea: therapeuticArea ?? undefined,
         modality: modality ?? undefined,
       }),
-    [stage, target, therapeuticArea, modality],
+    [companies, stage, target, therapeuticArea, modality],
   );
+
+  // Every real drug across every company's real pipeline — derived from
+  // the same live data as the Companies section above, not a separate
+  // hand-picked list. `phase` is cast from PipelineStage (Discovery/Phase
+  // I-III/Regulatory/Approved) to TrialPhase (adds Preclinical/I-II/II-III)
+  // for display only; DrugCard just renders it as text in a pill.
+  const allDrugs: DrugSummary[] = useMemo(
+    () =>
+      companies.flatMap((company) =>
+        company.pipeline.map((asset) => ({
+          id: asset.drugId,
+          name: asset.drugName,
+          companyName: company.name,
+          target: asset.target,
+          modality: asset.modality,
+          phase: asset.stage as TrialPhase,
+          indication: asset.disease,
+          oneLiner: asset.nextMilestone ? `Next: ${asset.nextMilestone}` : asset.disease,
+          confidence: company.confidence,
+          isMockData: company.isMockData,
+        })),
+      ),
+    [companies],
+  );
+
+  if (isLoading) {
+    return (
+      <ScreenShell title="Discover" subtitle="Loading companies…">
+        <View style={styles.centeredRow}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      </ScreenShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenShell title="Discover" subtitle="Couldn't load companies.">
+        <Text style={styles.emptyState}>{error}</Text>
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell
@@ -109,7 +153,7 @@ export default function DiscoverScreen() {
         <Text style={styles.compareLinkText}>Compare two companies ›</Text>
       </Pressable>
 
-      <Text style={styles.sectionLabel}>Companies</Text>
+      <Text style={styles.sectionLabel}>Companies ({filteredCards.length})</Text>
       {filteredCards.length === 0 ? (
         <Text style={styles.emptyState}>No companies match these filters.</Text>
       ) : (
@@ -118,8 +162,8 @@ export default function DiscoverScreen() {
         ))
       )}
 
-      <Text style={styles.sectionLabel}>Drugs</Text>
-      {MOCK_DRUGS.map((drug) => (
+      <Text style={styles.sectionLabel}>Drugs ({allDrugs.length})</Text>
+      {allDrugs.map((drug) => (
         <DrugCard key={drug.id} drug={drug} />
       ))}
 
@@ -140,6 +184,10 @@ export default function DiscoverScreen() {
 }
 
 const styles = StyleSheet.create({
+  centeredRow: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+  },
   sectionLabel: {
     ...typography.caption,
     color: colors.textTertiary,

@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { colors } from "../constants/theme";
 import { AuthProvider } from "../context/AuthContext";
+import { CompaniesProvider } from "../context/CompaniesContext";
 import { WatchlistProvider } from "../context/WatchlistContext";
 
 export default function RootLayout() {
@@ -39,22 +40,27 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <WatchlistProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
-        >
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="company/[id]" options={barebackHeaderOptions} />
-          <Stack.Screen name="compare" options={barebackHeaderOptions} />
-          <Stack.Screen name="stock-detail" options={{ presentation: "modal" }} />
-          <Stack.Screen name="auth/sign-up" options={barebackHeaderOptions} />
-          <Stack.Screen name="auth/log-in" options={barebackHeaderOptions} />
-          <Stack.Screen name="auth/forgot-password" options={barebackHeaderOptions} />
-          <Stack.Screen name="auth/change-password" options={barebackHeaderOptions} />
-          <Stack.Screen name="auth/delete-account" options={barebackHeaderOptions} />
-        </Stack>
-      </WatchlistProvider>
+      <CompaniesProvider>
+        <WatchlistProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="company/[id]" options={barebackHeaderOptions} />
+            <Stack.Screen name="compare" options={barebackHeaderOptions} />
+            <Stack.Screen name="stock-detail" options={{ presentation: "modal" }} />
+            <Stack.Screen name="auth/sign-up" options={barebackHeaderOptions} />
+            <Stack.Screen name="auth/log-in" options={barebackHeaderOptions} />
+            <Stack.Screen name="auth/forgot-password" options={barebackHeaderOptions} />
+            <Stack.Screen name="auth/change-password" options={barebackHeaderOptions} />
+            <Stack.Screen name="auth/delete-account" options={barebackHeaderOptions} />
+          </Stack>
+        </WatchlistProvider>
+      </CompaniesProvider>
     </AuthProvider>
   );
 }

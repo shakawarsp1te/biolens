@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-insecure-secret-change-me"
     jwt_expires_minutes: int = 60 * 24 * 7  # 7 days
     user_db_path: str = "db/biolens_dev.sqlite3"
+    # Interim company profile store (app/services/company_store.py) --
+    # replaces the old hardcoded app/mocks/*.ts data with a real,
+    # server-side store the mobile app fetches from, so profiles can
+    # actually be updated (or auto-discovered -- see discovery.py) without
+    # shipping a new app build. Stands in for the real Postgres `companies`
+    # table the same way user_db_path stands in for Supabase Auth.
+    company_db_path: str = "db/biolens_companies.sqlite3"
     # Where verification links point — the API itself, since the link is
     # opened directly in whatever browser the user's email client hands off
     # to, not deep-linked into the Expo app at this stage.

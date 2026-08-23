@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import AiDraftFlag from "../../components/AiDraftFlag";
 import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
 import EvidenceBadge from "../../components/EvidenceBadge";
@@ -10,7 +11,7 @@ import ScreenShell from "../../components/ScreenShell";
 import StockQuoteCard from "../../components/StockQuoteCard";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, spacing, typography } from "../../constants/theme";
-import { MOCK_COMPANY_PROFILES } from "../../mocks/companyProfile";
+import { useCompanies } from "../../context/CompaniesContext";
 import { buildAskBioLensContext } from "../../utils/askBiolensContext";
 
 /**
@@ -18,14 +19,15 @@ import { buildAskBioLensContext } from "../../utils/askBiolensContext";
  * Why It Matters -> Pipeline view -> Thesis Map, per the information
  * hierarchy rule (§65) of leading with "what matters" before depth.
  *
- * Four real profiles exist as mock data today (Janux, Cardiff, Erasca,
- * Xencor — all four of Discover's Discovery Cards), looked up by id so each
- * "Explore" button actually opens the company that was tapped, not always
- * the same one.
+ * Companies are fetched live from GET /companies (CompaniesContext) rather
+ * than bundled as static mock data, so the set of profiles that exist here
+ * can grow (manual research or api/app/services/discovery.py's
+ * auto-discovery) without shipping a new app build.
  */
 export default function CompanyProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const company = id ? MOCK_COMPANY_PROFILES[id] : undefined;
+  const { getById, isLoading } = useCompanies();
+  const company = id ? getById(id) : undefined;
   // Hooks must run unconditionally on every render (even before the
   // not-found early return below), since `id` can change across renders of
   // the same mounted screen as the user navigates between profiles.
@@ -33,6 +35,16 @@ export default function CompanyProfileScreen() {
     () => (company ? buildAskBioLensContext(company) : { facts: [], sourceIds: [] }),
     [company],
   );
+
+  if (isLoading) {
+    return (
+      <ScreenShell title="Loading…" subtitle="">
+        <View style={styles.centeredRow}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      </ScreenShell>
+    );
+  }
 
   if (!company) {
     return (
@@ -50,6 +62,7 @@ export default function CompanyProfileScreen() {
       subtitle={`${company.ticker ? company.ticker + " · " : ""}${company.status}`}
     >
       {company.isMockData ? <MockDataFlag /> : null}
+      {company.reviewStatus === "ai_drafted_unreviewed" ? <AiDraftFlag /> : null}
       {company.ticker ? <StockQuoteCard key={company.ticker} ticker={company.ticker} /> : null}
 
       <View style={styles.identityRow}>
@@ -113,6 +126,10 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  centeredRow: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+  },
   identityRow: {
     flexDirection: "row",
     alignItems: "center",
