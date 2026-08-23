@@ -45,3 +45,34 @@ def test_get_company_returns_profile_when_found(monkeypatch):
     response = client.get("/companies/co-1")
     assert response.status_code == 200
     assert response.json()["name"] == "Test Co"
+
+
+def test_discover_runs_a_pass_and_returns_what_was_added(monkeypatch):
+    async def fake_run_discovery_pass(*, max_new):
+        assert max_new == 2
+        return [{"id": "small-bio-inc", "name": "Small Bio Inc", "trialCount": 3}]
+
+    monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
+
+    response = client.post("/companies/discover", params={"max_new": 2})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["added"][0]["name"] == "Small Bio Inc"
+
+
+def test_discover_defaults_max_new_to_three(monkeypatch):
+    async def fake_run_discovery_pass(*, max_new):
+        assert max_new == 3
+        return []
+
+    monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
+
+    response = client.post("/companies/discover")
+    assert response.status_code == 200
+    assert response.json() == {"added": [], "count": 0}
+
+
+def test_discover_rejects_max_new_outside_bounds():
+    response = client.post("/companies/discover", params={"max_new": 100})
+    assert response.status_code == 422
