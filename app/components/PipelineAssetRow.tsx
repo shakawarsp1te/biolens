@@ -1,14 +1,17 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
+import { colors, spacing, typography } from "../constants/theme";
 import { PipelineAsset } from "../types/domain";
 import WatchButton from "./WatchButton";
 
 /**
  * BUILD_BRIEF.txt §20: one row in a company's Pipeline view. Shows exactly
  * the fields the brief specifies: drug name, target, modality, disease,
- * phase, trial IDs, next known milestone. "Clicking opens Drug Lens" per the
- * brief — Drug Lens itself is a later phase, so this is not yet tappable.
+ * phase, trial IDs, next known milestone. A plain row now (meant to sit
+ * inside a ListContainer with the rest of the pipeline), not its own
+ * boxed card — a company with five pipeline assets used to render five
+ * identical gray boxes in a row, which is exactly the repeating-block
+ * pattern this whole redesign is undoing.
  *
  * Follow buttons for both the drug and its target — the target's entityId
  * is the target string itself (e.g. "PLK1"), so following it once here
@@ -17,9 +20,6 @@ import WatchButton from "./WatchButton";
 export default function PipelineAssetRow({ asset }: { asset: PipelineAsset }) {
   return (
     <View style={styles.row}>
-      <View style={styles.stagePill}>
-        <Text style={styles.stageText}>{asset.stage}</Text>
-      </View>
       <View style={styles.details}>
         <View style={styles.drugNameRow}>
           <Text style={styles.drugName}>{asset.drugName}</Text>
@@ -35,8 +35,11 @@ export default function PipelineAssetRow({ asset }: { asset: PipelineAsset }) {
         {asset.trialIds.length > 0 ? (
           <Text style={styles.trialIds}>{asset.trialIds.join(", ")}</Text>
         ) : null}
-        {asset.nextMilestone ? <Text style={styles.milestone}>Next: {asset.nextMilestone}</Text> : null}
+        {asset.nextMilestone ? (
+          <Text style={styles.milestone}>Next: {asset.nextMilestone}</Text>
+        ) : null}
       </View>
+      <Text style={styles.stage}>{asset.stage}</Text>
     </View>
   );
 }
@@ -44,22 +47,13 @@ export default function PipelineAssetRow({ asset }: { asset: PipelineAsset }) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    justifyContent: "space-between",
+    paddingVertical: spacing.md,
   },
-  stagePill: {
-    backgroundColor: colors.accentMuted,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    alignSelf: "flex-start",
-    marginRight: spacing.md,
-  },
-  stageText: {
-    ...typography.caption,
+  stage: {
+    ...typography.label,
     color: colors.accent,
+    marginLeft: spacing.md,
   },
   details: {
     flex: 1,
@@ -72,6 +66,7 @@ const styles = StyleSheet.create({
   },
   drugName: {
     ...typography.heading,
+    fontSize: 16,
     color: colors.textPrimary,
     flexShrink: 1,
   },
@@ -81,17 +76,20 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   meta: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textTertiary,
     marginRight: spacing.xs,
   },
   trialIds: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
   milestone: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.accent,
     marginTop: 2,
   },

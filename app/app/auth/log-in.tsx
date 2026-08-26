@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import Callout from "../../components/Callout";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
@@ -80,22 +81,16 @@ export default function LogInScreen() {
       {state.status === "error" ? <Text style={styles.errorText}>{state.message}</Text> : null}
 
       {state.status === "unverified" ? (
-        <View style={styles.noticeBox}>
-          <Text style={styles.noticeText}>
-            Please verify your email before logging in — check your inbox for the link.
+        <Callout>
+          Please verify your email before logging in — check your inbox for the link.{" "}
+          <Text style={styles.linkText} onPress={handleResend}>
+            Resend verification email
           </Text>
-          <Pressable onPress={handleResend}>
-            <Text style={styles.linkText}>Resend verification email</Text>
-          </Pressable>
-        </View>
+        </Callout>
       ) : null}
 
       {state.status === "resent" ? (
-        <View style={styles.noticeBox}>
-          <Text style={styles.noticeText}>
-            If that email exists and isn&apos;t verified yet, we&apos;ve sent a new link.
-          </Text>
-        </View>
+        <Callout>If that email exists and isn&apos;t verified yet, we&apos;ve sent a new link.</Callout>
       ) : null}
 
       <Pressable
@@ -139,18 +134,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.loss,
     marginTop: spacing.md,
-  },
-  noticeBox: {
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
-    marginTop: spacing.md,
-  },
-  noticeText: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
   },
   primaryButton: {
     backgroundColor: colors.accent,

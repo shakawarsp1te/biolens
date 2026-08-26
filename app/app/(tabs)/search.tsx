@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import ListContainer from "../../components/ListContainer";
 import PaperResultRow from "../../components/PaperResultRow";
 import ScreenShell from "../../components/ScreenShell";
 import TrialResultRow from "../../components/TrialResultRow";
@@ -192,18 +193,26 @@ export default function SearchScreen() {
 
       {state.status === "success" ? (
         <>
-          <Text style={styles.sectionLabel}>Clinical Trials ({state.trials.length})</Text>
+          <Text style={styles.sectionTitle}>Clinical trials</Text>
           {state.trials.length === 0 ? (
             <Text style={styles.hint}>No matching trials found.</Text>
           ) : (
-            state.trials.map((trial, i) => <TrialResultRow key={trial.nct_id ?? i} trial={trial} />)
+            <ListContainer>
+              {state.trials.map((trial, i) => (
+                <TrialResultRow key={trial.nct_id ?? i} trial={trial} />
+              ))}
+            </ListContainer>
           )}
 
-          <Text style={styles.sectionLabel}>Research Papers ({state.papers.length})</Text>
+          <Text style={styles.sectionTitle}>Research papers</Text>
           {state.papers.length === 0 ? (
             <Text style={styles.hint}>No matching papers found.</Text>
           ) : (
-            state.papers.map((paper, i) => <PaperResultRow key={paper.pmid ?? i} paper={paper} />)
+            <ListContainer>
+              {state.papers.map((paper, i) => (
+                <PaperResultRow key={paper.pmid ?? i} paper={paper} />
+              ))}
+            </ListContainer>
           )}
         </>
       ) : null}
@@ -227,10 +236,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   suggestionsLabel: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
     marginBottom: spacing.sm,
   },
   suggestionChips: {
@@ -292,12 +299,11 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.confidenceModerate,
   },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 17,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
 });

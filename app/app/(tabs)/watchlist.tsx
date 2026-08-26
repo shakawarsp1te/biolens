@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import DiscoveryCard from "../../components/DiscoveryCard";
+import ListContainer from "../../components/ListContainer";
 import ScreenShell from "../../components/ScreenShell";
 import WatchButton from "../../components/WatchButton";
 import { colors, radii, spacing, typography } from "../../constants/theme";
@@ -101,67 +102,73 @@ export default function WatchlistScreen() {
         <>
           {watchedCompanies.length > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Companies</Text>
-              {watchedCompanies.map((card) => (
-                <DiscoveryCard
-                  key={card.id}
-                  data={card}
-                  onExplore={() => router.push(`/company/${card.id}`)}
-                  newActivityCount={newActivityCounts[card.id]}
-                />
-              ))}
+              <Text style={styles.sectionTitle}>Companies</Text>
+              <ListContainer>
+                {watchedCompanies.map((card) => (
+                  <DiscoveryCard
+                    key={card.id}
+                    data={card}
+                    onExplore={() => router.push(`/company/${card.id}`)}
+                    newActivityCount={newActivityCounts[card.id]}
+                  />
+                ))}
+              </ListContainer>
             </>
           ) : null}
 
           {watchedDrugs.length > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Drugs</Text>
-              {watchedDrugs.map((asset) => (
-                <Pressable
-                  key={asset.drugId}
-                  style={styles.entityCard}
-                  onPress={() => router.push(`/company/${asset.companyId}`)}
-                >
-                  <View style={styles.entityCardHeader}>
-                    <Text style={styles.entityName}>{asset.drugName}</Text>
+              <Text style={styles.sectionTitle}>Drugs</Text>
+              <ListContainer>
+                {watchedDrugs.map((asset) => (
+                  <Pressable
+                    key={asset.drugId}
+                    style={styles.entityRow}
+                    onPress={() => router.push(`/company/${asset.companyId}`)}
+                  >
+                    <View style={styles.entityIdentity}>
+                      <Text style={styles.entityName}>{asset.drugName}</Text>
+                      <Text style={styles.entityMeta}>{asset.companyName}</Text>
+                      <Text style={styles.entityMeta}>
+                        {asset.target} · {asset.modality} · {asset.stage}
+                      </Text>
+                    </View>
                     <WatchButton entityType="drug" entityId={asset.drugId} size={18} />
-                  </View>
-                  <Text style={styles.entityMeta}>{asset.companyName}</Text>
-                  <Text style={styles.entityMeta}>
-                    {asset.target} · {asset.modality} · {asset.stage}
-                  </Text>
-                </Pressable>
-              ))}
+                  </Pressable>
+                ))}
+              </ListContainer>
             </>
           ) : null}
 
           {watchedTargets.length > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Targets</Text>
-              {watchedTargets.map(({ target, assets }) => (
-                <View key={target} style={styles.entityCard}>
-                  <View style={styles.entityCardHeader}>
-                    <Text style={styles.entityName}>{target}</Text>
+              <Text style={styles.sectionTitle}>Targets</Text>
+              <ListContainer>
+                {watchedTargets.map(({ target, assets }) => (
+                  <View key={target} style={styles.entityRow}>
+                    <View style={styles.entityIdentity}>
+                      <Text style={styles.entityName}>{target}</Text>
+                      {assets.length === 0 ? (
+                        <Text style={styles.entityMeta}>
+                          No programs against this target in BioLens yet.
+                        </Text>
+                      ) : (
+                        assets.map((asset) => (
+                          <Pressable
+                            key={asset.drugId}
+                            onPress={() => router.push(`/company/${asset.companyId}`)}
+                          >
+                            <Text style={styles.entityMetaLink}>
+                              {asset.drugName} — {asset.companyName}
+                            </Text>
+                          </Pressable>
+                        ))
+                      )}
+                    </View>
                     <WatchButton entityType="target" entityId={target} size={18} />
                   </View>
-                  {assets.length === 0 ? (
-                    <Text style={styles.entityMeta}>
-                      No programs against this target in BioLens yet.
-                    </Text>
-                  ) : (
-                    assets.map((asset) => (
-                      <Pressable
-                        key={asset.drugId}
-                        onPress={() => router.push(`/company/${asset.companyId}`)}
-                      >
-                        <Text style={styles.entityMetaLink}>
-                          {asset.drugName} — {asset.companyName}
-                        </Text>
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              ))}
+                ))}
+              </ListContainer>
             </>
           ) : null}
         </>
@@ -189,39 +196,37 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 17,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
   },
-  entityCard: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  entityCardHeader: {
+  entityRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 2,
+    alignItems: "flex-start",
+    paddingVertical: spacing.md,
+  },
+  entityIdentity: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   entityName: {
     ...typography.heading,
     fontSize: 16,
     color: colors.textPrimary,
-    flexShrink: 1,
   },
   entityMeta: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textTertiary,
     marginTop: 2,
   },
   entityMetaLink: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.accent,
     marginTop: spacing.xs,
   },

@@ -79,10 +79,6 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
   return (
     <View style={styles.card}>
       <Pressable onPress={openDetail}>
-        <View style={styles.topRow}>
-          <Text style={styles.ticker}>{quote.ticker}</Text>
-          {quote.exchange ? <Text style={styles.exchange}>{quote.exchange}</Text> : null}
-        </View>
         <Text style={styles.price}>
           {quote.currency === "USD" ? "$" : ""}
           {quote.price.toFixed(2)}
@@ -100,10 +96,12 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
         ) : null}
       </View>
 
-      <Pressable onPress={openDetail} hitSlop={8}>
-        <Text style={styles.detailLink}>View detailed chart ›</Text>
-      </Pressable>
-      <Text style={styles.disclaimer}>Market data only — not investment advice.</Text>
+      <View style={styles.footerRow}>
+        <Pressable onPress={openDetail} hitSlop={8}>
+          <Text style={styles.detailLink}>View detailed chart ›</Text>
+        </Pressable>
+        <Text style={styles.disclaimer}>Not investment advice</Text>
+      </View>
     </View>
   );
 }
@@ -120,24 +118,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 88,
   },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  ticker: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    letterSpacing: 0.5,
-  },
-  exchange: {
-    ...typography.caption,
-    color: colors.textTertiary,
-  },
   price: {
     ...typography.monoLarge,
+    fontSize: 28,
     color: colors.textPrimary,
-    marginTop: spacing.xs,
   },
   change: {
     ...typography.mono,
@@ -148,16 +132,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     height: CHART_HEIGHT,
   },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
   detailLink: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.accent,
-    marginTop: spacing.xs,
     fontWeight: "700",
   },
   disclaimer: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 12,
     color: colors.textTertiary,
-    marginTop: spacing.sm,
-    fontWeight: "400",
   },
 });

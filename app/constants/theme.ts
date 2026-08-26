@@ -1,8 +1,20 @@
 /**
- * BioLens visual direction: premium / scientific / minimal, with a
- * confident, Robinhood-inspired design language — big bold numbers, a
- * near-black canvas, generous rounded surfaces, one disciplined accent
- * color used boldly rather than many colors used timidly.
+ * BioLens visual direction, v2 (Aug 2026 redesign): a confident fintech
+ * feed — closer to Robinhood/Cash App's actual screens than to a generic
+ * "AI-built dashboard." Two specific things this redesign deliberately
+ * moves away from, because they're the tell of an unstyled AI build:
+ *
+ * 1. The uppercase "eyebrow" label above everything (THERAPEUTIC AREA,
+ *    FRONTIER SCORE, WHY IT SURFACED, ...). `typography.label` below is
+ *    the replacement where a label is genuinely still needed — sentence
+ *    case, normal letter-spacing, medium weight — used sparingly, never
+ *    as the default wrapper for "here's a heading over some content."
+ * 2. Every group of related content boxed in its own rounded card,
+ *    repeated identically down the screen. Cards are now reserved for a
+ *    handful of genuinely singular modules (the price chart, a form); real
+ *    lists (companies, drugs, trials, papers) are full-bleed rows
+ *    separated by a hairline `colors.border` divider, the way an actual
+ *    watchlist or transaction list reads in a real trading app.
  *
  * Still holds the line on BUILD_BRIEF.txt's non-negotiables: no DNA-helix
  * clip art, no neon "AI" gradients, no green=buy / red=sell. The accent
@@ -35,7 +47,6 @@ export const colors = {
   evidenceEncouraging: "#4C7EFF",
   evidenceInconclusive: "#C9B27A",
   evidenceNegative: "#8A8F98",
-  mockDataBanner: "#4A3F2A",
   // Real market price movement (app/services/api.ts's StockQuote) — the one
   // deliberate exception to "no green/red semantics" elsewhere in this
   // theme, because a stock's actual price change is a plain fact, not a
@@ -88,7 +99,13 @@ export const typography = {
   title: { fontSize: 26, fontFamily: fontFamily.display, letterSpacing: -0.3 },
   heading: { fontSize: 18, fontFamily: fontFamily.displayMedium },
   body: { fontSize: 15, fontWeight: "400" as const, lineHeight: 21 },
-  caption: { fontSize: 12, fontWeight: "600" as const, letterSpacing: 0.3 },
+  // A genuine label — a filter's name, a stat's name in a grid — used
+  // sparingly and only where content is ambiguous without one. Sentence
+  // case, normal letter-spacing: the opposite of an "eyebrow." Compare
+  // `caption`, which is for small print (timestamps, fine-print
+  // disclaimers), not for labeling a block of content above it.
+  label: { fontSize: 13, fontWeight: "600" as const, letterSpacing: 0 },
+  caption: { fontSize: 12, fontWeight: "500" as const, letterSpacing: 0 },
   // Tabular numerals — opt in for anything showing a price, percentage, or
   // stat that updates, so digits don't jitter in width as they change.
   mono: { fontSize: 15, fontFamily: fontFamily.mono },

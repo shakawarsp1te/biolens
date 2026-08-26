@@ -1,12 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
+import { colors, spacing, typography } from "../constants/theme";
 import { PubMedPaper } from "../services/api";
 
 /** Renders one live PubMed search result. Abstract text is truncated —
  * this is a search result row, not the full reading view — and metadata
  * fields degrade gracefully since PubMed records don't always have every
- * field populated. */
+ * field populated. A plain row, meant to sit inside a ListContainer. */
 export default function PaperResultRow({ paper }: { paper: PubMedPaper }) {
   return (
     <View style={styles.row}>
@@ -30,10 +30,7 @@ export default function PaperResultRow({ paper }: { paper: PubMedPaper }) {
 
 const styles = StyleSheet.create({
   row: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
   },
   title: {
     ...typography.body,
@@ -46,7 +43,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   meta: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textSecondary,
     marginRight: spacing.sm,
   },
@@ -61,7 +59,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   identifier: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 12,
     color: colors.textTertiary,
     marginRight: spacing.sm,
   },

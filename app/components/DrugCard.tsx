@@ -1,79 +1,67 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
+import { colors, spacing, typography } from "../constants/theme";
 import { DrugSummary } from "../types/domain";
-import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
 import WatchButton from "./WatchButton";
 
 export default function DrugCard({ drug }: { drug: DrugSummary }) {
   return (
-    <View style={styles.card}>
-      {drug.isMockData ? <MockDataFlag /> : null}
-      <View style={styles.headerRow}>
-        <Text style={styles.name}>{drug.name}</Text>
-        <View style={styles.headerActions}>
-          <View style={styles.phasePill}>
-            <Text style={styles.phaseText}>{drug.phase}</Text>
-          </View>
-          <WatchButton entityType="drug" entityId={drug.id} size={18} />
-        </View>
+    <View style={styles.row}>
+      <View style={styles.identity}>
+        <Text style={styles.name} numberOfLines={1}>
+          {drug.name}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {drug.companyName} · {drug.target}
+          {drug.isMockData ? <MockDataFlag /> : null}
+        </Text>
+        <Text style={styles.oneLiner} numberOfLines={2}>
+          {drug.oneLiner}
+        </Text>
       </View>
-      <Text style={styles.meta}>{drug.companyName}</Text>
-      <Text style={styles.meta}>
-        Target: {drug.target} · {drug.modality}
-      </Text>
-      <Text style={styles.meta}>Indication: {drug.indication}</Text>
-      <Text style={styles.oneLiner}>{drug.oneLiner}</Text>
-      <EvidenceBadge level={drug.confidence} />
+      <View style={styles.trailing}>
+        <Text style={styles.phase}>{drug.phase}</Text>
+        <WatchButton entityType="drug" entityId={drug.id} size={18} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  headerRow: {
+  row: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.xs,
+    alignItems: "flex-start",
+    paddingVertical: spacing.md,
+  },
+  identity: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   name: {
     ...typography.heading,
     fontSize: 16,
     color: colors.textPrimary,
-    flexShrink: 1,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: spacing.sm,
-  },
-  phasePill: {
-    backgroundColor: colors.accentMuted,
-    borderRadius: radii.pill,
-    paddingVertical: 4,
-    paddingHorizontal: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  phaseText: {
-    ...typography.caption,
-    color: colors.accent,
   },
   meta: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textTertiary,
-    marginBottom: 2,
+    marginTop: 1,
   },
   oneLiner: {
     ...typography.body,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: spacing.xs,
-    marginBottom: spacing.sm,
+    lineHeight: 19,
+  },
+  trailing: {
+    alignItems: "flex-end",
+    gap: spacing.sm,
+  },
+  phase: {
+    ...typography.label,
+    color: colors.accent,
   },
 });

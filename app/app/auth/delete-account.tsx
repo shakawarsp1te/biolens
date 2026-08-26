@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import Callout from "../../components/Callout";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
@@ -43,11 +44,9 @@ export default function DeleteAccountScreen() {
       title="Delete account"
       subtitle="This permanently deletes your BioLens account. This can't be undone."
     >
-      <View style={styles.warningBox}>
-        <Text style={styles.warningText}>
-          Your watchlist and account will be gone for good — there is no recovery.
-        </Text>
-      </View>
+      <Callout tone="warning">
+        Your watchlist and account will be gone for good — there is no recovery.
+      </Callout>
 
       <Text style={styles.label}>Type DELETE to confirm</Text>
       <TextInput
@@ -71,11 +70,7 @@ export default function DeleteAccountScreen() {
         autoCapitalize="none"
       />
 
-      {state.status === "error" ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{state.message}</Text>
-        </View>
-      ) : null}
+      {state.status === "error" ? <Callout tone="error">{state.message}</Callout> : null}
 
       <Pressable
         style={[styles.dangerButton, !canSubmit && styles.dangerButtonDisabled]}
@@ -95,17 +90,6 @@ export default function DeleteAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  warningBox: {
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
-    marginBottom: spacing.md,
-  },
-  warningText: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
   label: {
     ...typography.caption,
     color: colors.textTertiary,
@@ -119,17 +103,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     color: colors.textPrimary,
     fontSize: 15,
-  },
-  errorBox: {
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
-    marginTop: spacing.md,
-  },
-  errorText: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textPrimary,
   },
   dangerButton: {
     backgroundColor: colors.loss,

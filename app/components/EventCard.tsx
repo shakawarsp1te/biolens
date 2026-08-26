@@ -1,9 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
+import { colors, spacing, typography } from "../constants/theme";
 import { EventSummary, EvidenceClassification } from "../types/domain";
 import Avatar from "./Avatar";
-import EvidenceBadge from "./EvidenceBadge";
 import MockDataFlag from "./MockDataFlag";
 import SourceChip from "./SourceChip";
 
@@ -14,35 +13,41 @@ const CLASSIFICATION_META: Record<EvidenceClassification, { label: string; color
   negative_primary_endpoint: { label: "Negative on primary endpoint", color: colors.evidenceNegative },
 };
 
+const CONFIDENCE_LABEL: Record<EventSummary["confidence"], string> = {
+  high: "High confidence",
+  moderate: "Moderate confidence",
+  low: "Low confidence",
+};
+
 /**
  * Home feed item. Leads with the bottom line first, per the information
- * hierarchy rule (BUILD_BRIEF.txt §65): Bottom line -> Why it matters -> Data
- * -> Sources. This card covers the first and last of those; a full readout's
- * Data/Biology/Competition sections live on the company/event detail page
- * (later phase), not here.
+ * hierarchy rule (BUILD_BRIEF.txt §65): Bottom line -> Why it matters ->
+ * Data -> Sources.
+ *
+ * No uppercase meta line above the headline, and evidence classification +
+ * confidence collapse into one plain-text line instead of two separate
+ * pill badges — the headline itself is what a real feed leads with, not a
+ * caption stack above it.
  */
 export default function EventCard({ event }: { event: EventSummary }) {
-  const classification = CLASSIFICATION_META[event.evidenceClassification];
   return (
-    <View style={styles.card}>
-      {event.isMockData ? <MockDataFlag /> : null}
-      <View style={styles.headerRow}>
-        <Avatar name={event.companyName} size={32} />
-        <Text style={styles.eyebrow} numberOfLines={1}>
+    <View style={styles.container}>
+      <View style={styles.identityRow}>
+        <Avatar name={event.companyName} size={28} />
+        <Text style={styles.identityText} numberOfLines={1}>
           {event.companyName}
-          {event.ticker ? ` · ${event.ticker}` : ""} · {event.phase} · {event.eventType}
+          {event.ticker ? ` · ${event.ticker}` : ""} · {event.phase}
+          {event.isMockData ? <MockDataFlag /> : null}
         </Text>
       </View>
       <Text style={styles.title}>{event.title}</Text>
       <Text style={styles.bottomLine}>{event.bottomLine}</Text>
-      <View style={styles.footerRow}>
-        <View style={[styles.classificationPill, { backgroundColor: classification.color + "1A" }]}>
-          <Text style={[styles.classificationLabel, { color: classification.color }]}>
-            {classification.label}
-          </Text>
-        </View>
-        <EvidenceBadge level={event.confidence} />
-      </View>
+      <Text style={styles.evidenceLine}>
+        <Text style={{ color: CLASSIFICATION_META[event.evidenceClassification].color }}>
+          {CLASSIFICATION_META[event.evidenceClassification].label}
+        </Text>
+        <Text style={styles.evidenceSeparator}> · {CONFIDENCE_LABEL[event.confidence]}</Text>
+      </Text>
       {event.sources.length > 0 ? (
         <View style={styles.sourceRow}>
           {event.sources.map((source) => (
@@ -55,21 +60,18 @@ export default function EventCard({ event }: { event: EventSummary }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+  container: {
+    paddingVertical: spacing.lg,
   },
-  headerRow: {
+  identityRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  eyebrow: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: "uppercase",
+  identityText: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.textTertiary,
     marginLeft: spacing.sm,
     flexShrink: 1,
   },
@@ -81,27 +83,20 @@ const styles = StyleSheet.create({
   bottomLine: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
+  evidenceLine: {
+    ...typography.body,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: spacing.sm,
   },
-  classificationPill: {
-    borderRadius: radii.pill,
-    paddingVertical: 5,
-    paddingHorizontal: spacing.sm,
-  },
-  classificationLabel: {
-    ...typography.caption,
-    letterSpacing: 0.2,
+  evidenceSeparator: {
+    color: colors.textTertiary,
+    fontWeight: "500",
   },
   sourceRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: spacing.sm,
   },
 });

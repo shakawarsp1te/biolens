@@ -15,10 +15,15 @@ export interface DiscoverFilters {
   maturity?: CompanyMaturity;
 }
 
-export function applyDiscoverFilters(
-  listings: DiscoveryCardData[],
+/** Generic over the listing type (not fixed to DiscoveryCardData) so
+ * callers that pass the richer CompanyRecord (DiscoveryCardData +
+ * CompanyProfile merged — see types/domain.ts) get CompanyRecord[] back,
+ * not a narrowed-down DiscoveryCardData[] that's lost the profile fields
+ * their components also need. */
+export function applyDiscoverFilters<T extends DiscoveryCardData>(
+  listings: T[],
   filters: DiscoverFilters,
-): DiscoveryCardData[] {
+): T[] {
   let result = listings;
 
   if (filters.therapeuticArea) {

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import Callout from "../../components/Callout";
 import PasswordStrengthMeter from "../../components/PasswordStrengthMeter";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
@@ -84,11 +85,7 @@ export default function ChangePasswordScreen() {
         <Text style={styles.fieldError}>Passwords don&apos;t match.</Text>
       ) : null}
 
-      {state.status === "error" ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{state.message}</Text>
-        </View>
-      ) : null}
+      {state.status === "error" ? <Callout tone="error">{state.message}</Callout> : null}
 
       <Pressable
         style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]}
@@ -123,17 +120,6 @@ const styles = StyleSheet.create({
     color: colors.loss,
     fontWeight: "400",
     marginTop: spacing.xs,
-  },
-  errorBox: {
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
-    marginTop: spacing.md,
-  },
-  errorText: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textPrimary,
   },
   primaryButton: {
     backgroundColor: colors.accent,

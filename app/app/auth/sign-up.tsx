@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import Callout from "../../components/Callout";
 import PasswordStrengthMeter from "../../components/PasswordStrengthMeter";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
@@ -115,17 +116,11 @@ export default function SignUpScreen() {
       ) : null}
 
       {state.status === "error" ? (
-        <View style={styles.errorBox}>
-          {state.violations && state.violations.length > 0 ? (
-            state.violations.map((v) => (
-              <Text key={v} style={styles.errorText}>
-                • {v}
-              </Text>
-            ))
-          ) : (
-            <Text style={styles.errorText}>{state.message}</Text>
-          )}
-        </View>
+        <Callout tone="error">
+          {state.violations && state.violations.length > 0
+            ? state.violations.join("  •  ")
+            : state.message}
+        </Callout>
       ) : null}
 
       <Pressable
@@ -165,17 +160,6 @@ const styles = StyleSheet.create({
     color: colors.loss,
     fontWeight: "400",
     marginTop: spacing.xs,
-  },
-  errorBox: {
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
-    marginTop: spacing.md,
-  },
-  errorText: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textPrimary,
   },
   primaryButton: {
     backgroundColor: colors.accent,

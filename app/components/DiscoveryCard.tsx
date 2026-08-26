@@ -1,30 +1,26 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
-import { DiscoveryCardData, FRONTIER_SCORE_EXPLANATION } from "../types/domain";
+import { colors, fontFamily, spacing, typography } from "../constants/theme";
+import { CompanyRecord } from "../types/domain";
+import AiDraftFlag from "./AiDraftFlag";
 import Avatar from "./Avatar";
 import MockDataFlag from "./MockDataFlag";
 import WatchButton from "./WatchButton";
 
 /**
- * BUILD_BRIEF.txt §54, followed field-for-field: name/ticker header,
- * Frontier Score, "Why it surfaced", "BioLens in one sentence", "Key risk",
- * [Explore]. FRONTIER_SCORE_EXPLANATION is shown every time a score is —
- * §53's rule that the score must never be presented without its own
- * "not investment attractiveness" caveat right there with it.
- *
- * The score gets the "hero number" treatment (large, bold, top-right,
- * beside the company identity) deliberately — it's the single stat this
- * whole card exists to justify, so it should read at a glance the way a
- * price would on a trading app, while the caption right under it keeps
- * that comparison from being misleading.
+ * A row in a list of companies (Discover, Watchlist) — not a repeated
+ * boxed card. Real fintech watchlists are scannable: name, one line of
+ * context, one big trailing number; the fuller picture (Why It Surfaced,
+ * Key Risk, the whole Frontier Score breakdown) lives on the company
+ * profile page now, reachable by tapping the row, rather than being
+ * printed in full on every single row of the list it appears in.
  */
 export default function DiscoveryCard({
   data,
   onExplore,
   newActivityCount,
 }: {
-  data: DiscoveryCardData;
+  data: CompanyRecord;
   onExplore?: () => void;
   /** Real count of ClinicalTrials.gov results for this company not seen on
    * a previous visit (Watchlist screen only — see
@@ -32,174 +28,85 @@ export default function DiscoveryCard({
   newActivityCount?: number;
 }) {
   return (
-    <View style={styles.card}>
-      {data.isMockData ? <MockDataFlag /> : null}
-
-      <View style={styles.headerRow}>
-        <View style={styles.identity}>
-          <Avatar name={data.name} size={40} />
-          <View style={styles.identityText}>
-            <Text style={styles.name} numberOfLines={1}>
-              {data.name}
-            </Text>
-            {data.ticker ? <Text style={styles.ticker}>{data.ticker}</Text> : null}
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <WatchButton entityType="company" entityId={data.id} />
-          <View style={styles.scoreBlock}>
-            <Text style={styles.scoreValue}>{data.frontierScore}</Text>
-            <Text style={styles.scoreLabel}>Frontier Score</Text>
-          </View>
-        </View>
-      </View>
-      {newActivityCount ? (
-        <View style={styles.newBadge}>
-          <Text style={styles.newBadgeText}>
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      onPress={onExplore}
+    >
+      <Avatar name={data.name} size={40} />
+      <View style={styles.identity}>
+        <Text style={styles.name} numberOfLines={1}>
+          {data.name}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {data.ticker ? `${data.ticker} · ` : ""}
+          {data.stage}
+          {data.isMockData ? <MockDataFlag /> : null}
+          {data.reviewStatus === "ai_drafted_unreviewed" ? <AiDraftFlag /> : null}
+        </Text>
+        <Text style={styles.summary} numberOfLines={2}>
+          {data.oneSentenceSummary}
+        </Text>
+        {newActivityCount ? (
+          <Text style={styles.newActivity}>
             {newActivityCount} new trial{newActivityCount === 1 ? "" : "s"} since your last visit
           </Text>
-        </View>
-      ) : null}
-      <Text style={styles.scoreExplanation}>{FRONTIER_SCORE_EXPLANATION}</Text>
-
-      <Section title="Why it surfaced">
-        {data.whyItSurfaced.map((reason, i) => (
-          <Text key={i} style={styles.bulletText}>
-            {"• "}
-            {reason}
-          </Text>
-        ))}
-      </Section>
-
-      <Section title="BioLens in one sentence">
-        <Text style={styles.bodyText}>{data.oneSentenceSummary}</Text>
-      </Section>
-
-      <Section title="Key risk">
-        <Text style={styles.bodyText}>{data.keyRisk}</Text>
-      </Section>
-
-      {onExplore ? (
-        <Pressable
-          style={({ pressed }) => [styles.exploreButton, pressed && styles.exploreButtonPressed]}
-          onPress={onExplore}
-        >
-          <Text style={styles.exploreButtonText}>Explore</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
+        ) : null}
+      </View>
+      <View style={styles.trailing}>
+        <WatchButton entityType="company" entityId={data.id} size={18} />
+        <Text style={styles.score}>{data.frontierScore}</Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  headerRow: {
+  row: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.xs,
+    alignItems: "flex-start",
+    paddingVertical: spacing.md,
+  },
+  rowPressed: {
+    opacity: 0.7,
   },
   identity: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-    marginRight: spacing.md,
-  },
-  identityText: {
-    marginLeft: spacing.sm,
-    flexShrink: 1,
+    flex: 1,
+    marginLeft: spacing.md,
+    marginRight: spacing.sm,
   },
   name: {
     ...typography.heading,
+    fontSize: 16,
     color: colors.textPrimary,
   },
-  ticker: {
-    ...typography.caption,
+  meta: {
+    ...typography.body,
+    fontSize: 13,
     color: colors.textTertiary,
-    marginTop: 2,
+    marginTop: 1,
   },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  summary: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    lineHeight: 19,
   },
-  scoreBlock: {
+  newActivity: {
+    ...typography.body,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.accent,
+    marginTop: spacing.xs,
+  },
+  trailing: {
     alignItems: "flex-end",
+    gap: spacing.xs,
   },
-  scoreValue: {
-    ...typography.hero,
-    fontSize: 32,
-    color: colors.accent,
-  },
-  scoreLabel: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    textTransform: "uppercase",
-    marginTop: -2,
-  },
-  scoreExplanation: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    letterSpacing: 0,
-    marginBottom: spacing.md,
-  },
-  newBadge: {
-    backgroundColor: colors.accentMuted,
-    borderRadius: radii.pill,
-    paddingVertical: 4,
-    paddingHorizontal: spacing.sm,
-    alignSelf: "flex-start",
-    marginBottom: spacing.sm,
-  },
-  newBadgeText: {
-    ...typography.caption,
-    color: colors.accent,
-  },
-  section: {
-    marginTop: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    marginBottom: spacing.xs,
-  },
-  bulletText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  bodyText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  exploreButton: {
-    marginTop: spacing.lg,
-    alignItems: "center",
-    backgroundColor: colors.accent,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.sm + 2,
-  },
-  exploreButtonPressed: {
-    opacity: 0.85,
-  },
-  exploreButtonText: {
-    ...typography.body,
-    color: "#04070D",
-    fontWeight: "700",
+  score: {
+    fontSize: 22,
+    fontFamily: fontFamily.monoBold,
+    letterSpacing: -0.3,
+    color: colors.textPrimary,
   },
 });

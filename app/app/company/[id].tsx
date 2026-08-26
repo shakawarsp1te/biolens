@@ -1,16 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import AiDraftFlag from "../../components/AiDraftFlag";
 import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
 import EvidenceBadge from "../../components/EvidenceBadge";
-import MockDataFlag from "../../components/MockDataFlag";
+import ListContainer from "../../components/ListContainer";
 import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
 import StockQuoteCard from "../../components/StockQuoteCard";
 import ThesisMap from "../../components/ThesisMap";
-import { colors, spacing, typography } from "../../constants/theme";
+import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useCompanies } from "../../context/CompaniesContext";
 import { buildAskBioLensContext } from "../../utils/askBiolensContext";
 
@@ -18,6 +17,13 @@ import { buildAskBioLensContext } from "../../utils/askBiolensContext";
  * Company profile screen (BUILD_BRIEF.txt §18-21): BioLens Summary ->
  * Why It Matters -> Pipeline view -> Thesis Map, per the information
  * hierarchy rule (§65) of leading with "what matters" before depth.
+ *
+ * Reads as a document now, not a stack of identically-boxed "Section"
+ * cards: BioLens Summary is a flowing lead paragraph, Why It Matters a
+ * plain bullet list, Pipeline a divided row list, Thesis Map its own
+ * distinct two-column module. Why It Surfaced and Key Risk (previously
+ * repeated on every Discover list row) live here instead, since a list
+ * row's job is to be scannable and a profile's job is to be complete.
  *
  * Companies are fetched live from GET /companies (CompaniesContext) rather
  * than bundled as static mock data, so the set of profiles that exist here
@@ -59,10 +65,10 @@ export default function CompanyProfileScreen() {
   return (
     <ScreenShell
       title={company.name}
-      subtitle={`${company.ticker ? company.ticker + " · " : ""}${company.status}`}
+      subtitle={`${company.ticker ? company.ticker + " · " : ""}${company.status}${
+        company.isMockData ? " · Illustrative data" : ""
+      }${company.reviewStatus === "ai_drafted_unreviewed" ? " · AI-drafted, pending review" : ""}`}
     >
-      {company.isMockData ? <MockDataFlag /> : null}
-      {company.reviewStatus === "ai_drafted_unreviewed" ? <AiDraftFlag /> : null}
       {company.ticker ? <StockQuoteCard key={company.ticker} ticker={company.ticker} /> : null}
 
       <View style={styles.identityRow}>
@@ -74,45 +80,47 @@ export default function CompanyProfileScreen() {
       </View>
       <EvidenceBadge level={company.confidence} />
 
-      <Section title="BioLens Summary">
-        <Text style={styles.paragraph}>{company.biolensSummary}</Text>
-      </Section>
+      <Text style={styles.paragraph}>{company.biolensSummary}</Text>
 
-      <Section title="Why investors are watching">
-        {company.whyItMatters.map((statement, i) => (
-          <Text key={i} style={styles.bulletParagraph}>
-            {"• "}
-            {statement}
-          </Text>
-        ))}
-      </Section>
+      <View style={styles.keyRiskBlock}>
+        <Text style={styles.keyRiskLabel}>Key risk</Text>
+        <Text style={styles.keyRiskText}>{company.keyRisk}</Text>
+      </View>
 
-      <Section title="Pipeline">
+      <Text style={styles.heading}>Why it surfaced</Text>
+      {company.whyItSurfaced.map((statement, i) => (
+        <Text key={i} style={styles.bulletParagraph}>
+          {"— "}
+          {statement}
+        </Text>
+      ))}
+
+      <Text style={styles.heading}>Why investors are watching</Text>
+      {company.whyItMatters.map((statement, i) => (
+        <Text key={i} style={styles.bulletParagraph}>
+          {"— "}
+          {statement}
+        </Text>
+      ))}
+
+      <Text style={styles.heading}>Pipeline</Text>
+      <ListContainer>
         {company.pipeline.map((asset) => (
           <PipelineAssetRow key={asset.drugId} asset={asset} />
         ))}
-      </Section>
+      </ListContainer>
 
-      <Section title="Thesis Map">
+      <Text style={styles.heading}>Thesis map</Text>
+      <View style={styles.thesisMapCard}>
         <ThesisMap data={company.thesisMap} />
-      </Section>
+      </View>
 
-      <Section title="Ask BioLens">
-        <Text style={styles.askSubtitle}>
-          Answers are grounded strictly in what&apos;s on this page — nothing from the open web.
-        </Text>
-        <AskBioLensBox facts={askContext.facts} sourceIds={askContext.sourceIds} />
-      </Section>
+      <Text style={styles.heading}>Ask BioLens</Text>
+      <Text style={styles.askSubtitle}>
+        Answers are grounded strictly in what&apos;s on this page — nothing from the open web.
+      </Text>
+      <AskBioLensBox facts={askContext.facts} sourceIds={askContext.sourceIds} />
     </ScreenShell>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
   );
 }
 
@@ -147,19 +155,19 @@ const styles = StyleSheet.create({
   metaLabel: {
     color: colors.textTertiary,
   },
-  section: {
-    marginTop: spacing.lg,
-  },
-  sectionTitle: {
-    ...typography.title,
-    fontSize: 19,
+  heading: {
+    ...typography.heading,
+    fontSize: 17,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
+    marginTop: spacing.xl,
   },
   paragraph: {
     ...typography.body,
+    fontSize: 16,
     color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 24,
+    marginTop: spacing.lg,
   },
   bulletParagraph: {
     ...typography.body,
@@ -167,9 +175,31 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
+  keyRiskBlock: {
+    borderLeftWidth: 2,
+    borderLeftColor: colors.accent,
+    paddingLeft: spacing.md,
+    marginTop: spacing.lg,
+  },
+  keyRiskLabel: {
+    ...typography.label,
+    color: colors.accent,
+    marginBottom: 2,
+  },
+  keyRiskText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 21,
+  },
+  thesisMapCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+  },
   askSubtitle: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 13,
     color: colors.textTertiary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
 });

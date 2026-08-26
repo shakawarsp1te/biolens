@@ -181,12 +181,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   pickerLabel: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
     marginBottom: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   pillRow: {
     flexDirection: "row",

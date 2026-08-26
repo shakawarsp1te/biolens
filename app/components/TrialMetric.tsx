@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "../constants/theme";
+import { colors, spacing, typography } from "../constants/theme";
 import { TrialMetricData } from "../types/domain";
 
 /**
@@ -35,11 +35,7 @@ export default function TrialMetric({ data }: { data: TrialMetricData }) {
 
       {data.caption ? <Text style={styles.caption}>{data.caption}</Text> : null}
 
-      {data.flag ? (
-        <View style={styles.flagBox}>
-          <Text style={styles.flagText}>{data.flag}</Text>
-        </View>
-      ) : null}
+      {data.flag ? <Text style={styles.flagText}>{data.flag}</Text> : null}
     </View>
   );
 }
@@ -80,10 +76,7 @@ function endpointRoleLabel(role: NonNullable<TrialMetricData["endpointRole"]>) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.md,
   },
   headerRow: {
     flexDirection: "row",
@@ -92,9 +85,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   label: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.textSecondary,
-    textTransform: "uppercase",
   },
   endpointRole: {
     ...typography.caption,
@@ -121,14 +113,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontStyle: "italic",
   },
-  flagBox: {
-    marginTop: spacing.xs,
-    backgroundColor: colors.mockDataBanner,
-    borderRadius: radii.sm,
-    padding: spacing.xs,
-  },
   flagText: {
     ...typography.caption,
     color: colors.confidenceModerate,
+    marginTop: spacing.xs,
   },
 });

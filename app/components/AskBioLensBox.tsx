@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { ApiError, askBioLens } from "../services/api";
+import Callout from "./Callout";
 
 type AskState =
   | { status: "idle" }
@@ -94,9 +95,13 @@ export default function AskBioLensBox({ facts, sourceIds }: { facts: string[]; s
       {state.status === "error" ? <Text style={styles.errorText}>{state.message}</Text> : null}
 
       {state.status === "answered" ? (
-        <View style={[styles.answerBox, !state.hasSufficientEvidence && styles.answerBoxInsufficient]}>
-          <Text style={styles.answerText}>{state.answer}</Text>
-        </View>
+        state.hasSufficientEvidence ? (
+          <View style={styles.answerBox}>
+            <Text style={styles.answerText}>{state.answer}</Text>
+          </View>
+        ) : (
+          <Callout tone="warning">{state.answer}</Callout>
+        )
       ) : null}
     </View>
   );
@@ -158,9 +163,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     padding: spacing.md,
     marginTop: spacing.sm,
-  },
-  answerBoxInsufficient: {
-    backgroundColor: colors.mockDataBanner,
   },
   answerText: {
     ...typography.body,

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import FilterPill from "../components/FilterPill";
+import ListContainer from "../components/ListContainer";
 import PriceChart from "../components/PriceChart";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import {
@@ -125,14 +126,16 @@ export default function StockDetailScreen() {
       </View>
 
       {quote ? (
-        <View style={styles.statsGrid}>
-          <StatCell label="Day range" value={formatRange(quote.day_low, quote.day_high)} />
-          <StatCell
-            label="52-week range"
-            value={formatRange(quote.fifty_two_week_low, quote.fifty_two_week_high)}
-          />
-          <StatCell label="Volume" value={quote.volume ? quote.volume.toLocaleString() : "—"} />
-          <StatCell label="Exchange" value={quote.exchange ?? "—"} />
+        <View style={styles.statsSection}>
+          <ListContainer>
+            <StatRow label="Day range" value={formatRange(quote.day_low, quote.day_high)} />
+            <StatRow
+              label="52-week range"
+              value={formatRange(quote.fifty_two_week_low, quote.fifty_two_week_high)}
+            />
+            <StatRow label="Volume" value={quote.volume ? quote.volume.toLocaleString() : "—"} />
+            <StatRow label="Exchange" value={quote.exchange ?? "—"} />
+          </ListContainer>
         </View>
       ) : null}
 
@@ -144,9 +147,9 @@ export default function StockDetailScreen() {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.statCell}>
+    <View style={styles.statRow}>
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={styles.statValue}>{value}</Text>
     </View>
@@ -229,27 +232,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flex: 1,
   },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  statsSection: {
     marginTop: spacing.lg,
-    gap: spacing.md,
   },
-  statCell: {
-    width: "45%",
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.md,
-    padding: spacing.sm + 2,
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm + 2,
   },
   statLabel: {
-    ...typography.caption,
-    color: colors.textTertiary,
+    ...typography.label,
+    color: colors.textSecondary,
   },
   statValue: {
     ...typography.mono,
     fontSize: 14,
     color: colors.textPrimary,
-    marginTop: 2,
   },
   disclaimer: {
     ...typography.caption,
