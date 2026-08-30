@@ -74,3 +74,83 @@ def test_history_defaults_to_1m_range(monkeypatch):
 
     response = client.get("/market/history/CRDF")
     assert response.status_code == 200
+
+
+# --- GET /market/financial-health/{ticker} ---
+
+
+def test_financial_health_returns_computed_result(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        assert ticker == "CRDF"
+        return "0001837929"
+
+    async def fake_get_company_facts(self, cik):
+        assert cik == "0001837929"
+        return {"entityName": "Cardiff Oncology, Inc.", "facts": {"us-gaap": {}}}
+
+    def fake_compute(facts):
+        from app.services.financial_health import FinancialHealthResult
+
+        return FinancialHealthResult(
+            cashOnHand=45_000_000,
+            cashAsOf="2026-03-31",
+            quarterlyBurn=-15_000_000,
+            runwayMonths=9.0,
+        )
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+    monkeypatch.setattr(
+        market_router_module.SecEdgarClient, "get_company_facts", fake_get_company_facts
+    )
+    monkeypatch.setattr(market_router_module, "compute_financial_health", fake_compute)
+
+    response = client.get("/market/financial-health/CRDF")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ticker"] == "CRDF"
+    assert body["companyName"] == "Cardiff Oncology, Inc."
+    assert body["runwayMonths"] == 9.0
+
+
+def test_financial_health_404_when_ticker_not_a_sec_filer(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        return None
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+
+    response = client.get("/market/financial-health/NOTATICKER")
+    assert response.status_code == 404
+
+
+def test_financial_health_404_when_no_facts_available(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        return "0001837929"
+
+    async def fake_get_company_facts(self, cik):
+        return None
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+    monkeypatch.setattr(
+        market_router_module.SecEdgarClient, "get_company_facts", fake_get_company_facts
+    )
+
+    response = client.get("/market/financial-health/CRDF")
+    assert response.status_code == 404
+
+
+def test_financial_health_404_when_facts_have_no_usable_figures(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        return "0001837929"
+
+    async def fake_get_company_facts(self, cik):
+        return {"entityName": "Cardiff Oncology, Inc.", "facts": {"us-gaap": {}}}
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+    monkeypatch.setattr(
+        market_router_module.SecEdgarClient, "get_company_facts", fake_get_company_facts
+    )
+    monkeypatch.setattr(market_router_module, "compute_financial_health", lambda facts: None)
+
+    response = client.get("/market/financial-health/CRDF")
+    assert response.status_code == 404

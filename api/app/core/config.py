@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     pubmed_tool_name: str = "biolens"
     pubmed_contact_email: str = ""
     pubmed_api_key: str = ""
+    # SEC EDGAR's fair-access policy (sec.gov/os/webmaster-faq#developers)
+    # asks every automated caller to identify itself with a descriptive
+    # User-Agent including a contact email -- same posture as PubMed's
+    # tool/email params above. Works without one configured (falls back to a
+    # placeholder), same as pubmed_contact_email being optional.
+    sec_edgar_contact_email: str = ""
 
 
 @lru_cache

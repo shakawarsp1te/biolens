@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
 import EvidenceBadge from "../../components/EvidenceBadge";
+import FinancialHealthCard from "../../components/FinancialHealthCard";
 import ListContainer from "../../components/ListContainer";
 import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
@@ -109,6 +110,8 @@ export default function CompanyProfileScreen() {
           <PipelineAssetRow key={asset.drugId} asset={asset} />
         ))}
       </ListContainer>
+
+      {company.ticker ? <FinancialHealthCard key={company.ticker} ticker={company.ticker} /> : null}
 
       <Text style={styles.heading}>Thesis map</Text>
       <View style={styles.thesisMapCard}>

@@ -255,6 +255,38 @@ export async function getStockHistory(
   }
 }
 
+/** Cash on hand, last reported quarterly operating burn, and the runway
+ * that implies — computed deterministically from the company's own SEC
+ * filings (api/app/services/financial_health.py), never estimated by an
+ * LLM. `runwayMonths` is null either when burn couldn't be determined at
+ * all, or when operating cash flow was positive last quarter (`note`
+ * explains which). */
+export interface FinancialHealth {
+  ticker: string;
+  companyName: string | null;
+  cashOnHand: number;
+  cashAsOf: string;
+  quarterlyBurn: number | null;
+  burnPeriodStart: string | null;
+  burnPeriodEnd: string | null;
+  burnIsEstimated: boolean;
+  filingForm: string | null;
+  runwayMonths: number | null;
+  note: string | null;
+}
+
+/** Returns null (not a thrown ApiError) on a 404 — a private company, one
+ * SEC hasn't indexed yet, or a filer whose XBRL tagging this parser can't
+ * read is a normal, expected outcome, same posture as getStockQuote. */
+export async function getFinancialHealth(ticker: string): Promise<FinancialHealth | null> {
+  try {
+    return await apiGet<FinancialHealth>(`/market/financial-health/${encodeURIComponent(ticker)}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 // --- Accounts (api/app/routers/auth.py) ---
 
 export interface SignUpResponse {
