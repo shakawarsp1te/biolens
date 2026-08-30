@@ -9,7 +9,7 @@
  * string is all a GET query string needs.
  */
 
-import { CompanyRecord } from "../types/domain";
+import { CatalystEvent, CompanyRecord } from "../types/domain";
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -378,4 +378,11 @@ export function getCompany(id: string): Promise<CompanyRecord | null> {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   });
+}
+
+/** Upcoming trial-readout catalysts for one company — an empty array is a
+ * normal, expected result (nothing in the pipeline has a disclosed
+ * upcoming date), not an error. */
+export function getCompanyCatalysts(id: string): Promise<CatalystEvent[]> {
+  return apiGet<CatalystEvent[]>(`/companies/${encodeURIComponent(id)}/catalysts`);
 }

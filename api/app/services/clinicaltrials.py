@@ -72,6 +72,9 @@ def parse_study_summary(raw_study: dict[str, Any]) -> dict[str, Any]:
             for name in arm_group.get("interventionNames", []):
                 intervention_names.append(name.split(":", 1)[-1].strip())
 
+    primary_completion = status.get("primaryCompletionDateStruct", {}) or {}
+    completion = status.get("completionDateStruct", {}) or {}
+
     return {
         "nct_id": identification.get("nctId"),
         "brief_title": identification.get("briefTitle"),
@@ -82,6 +85,13 @@ def parse_study_summary(raw_study: dict[str, Any]) -> dict[str, Any]:
         "enrollment_count": design.get("enrollmentInfo", {}).get("count"),
         "conditions": conditions.get("conditions", []),
         "interventions": sorted(set(intervention_names)),
+        # A trial's own disclosed timeline (services/catalysts.py's source of
+        # every catalyst date) -- each explicitly typed ESTIMATED or ACTUAL
+        # by the sponsor, never inferred by BioLens.
+        "primary_completion_date": primary_completion.get("date"),
+        "primary_completion_date_type": primary_completion.get("type"),
+        "completion_date": completion.get("date"),
+        "completion_date_type": completion.get("type"),
     }
 
 

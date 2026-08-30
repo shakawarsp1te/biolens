@@ -76,3 +76,76 @@ def test_discover_defaults_max_new_to_three(monkeypatch):
 def test_discover_rejects_max_new_outside_bounds():
     response = client.post("/companies/discover", params={"max_new": 100})
     assert response.status_code == 422
+
+
+# --- GET /companies/{id}/catalysts ---
+
+
+def test_catalysts_returns_404_when_company_missing(monkeypatch):
+    async def fake_get_company(self, company_id):
+        return None
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+
+    response = client.get("/companies/not-a-real-id/catalysts")
+    assert response.status_code == 404
+
+
+def test_catalysts_returns_events_for_an_existing_company(monkeypatch):
+    async def fake_get_company(self, company_id):
+        assert company_id == "co-1"
+        return {"id": "co-1", "name": "Test Co", "pipeline": []}
+
+    async def fake_get_catalysts_for_company(company, *, client):
+        assert company["id"] == "co-1"
+        from app.models.catalyst import CatalystEventModel
+
+        return [
+            CatalystEventModel(
+                id="NCT001:primary_completion",
+                companyId="co-1",
+                nctId="NCT001",
+                eventType="primary_completion",
+                title="Primary completion — Phase III (NCT001)",
+                phase="Phase III",
+                expectedDate="2027-01-01",
+                dateType="ESTIMATED",
+                hasDayPrecision=False,
+                sourceUrl="https://clinicaltrials.gov/study/NCT001",
+            )
+        ]
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+    monkeypatch.setattr(
+        companies_router_module, "get_catalysts_for_company", fake_get_catalysts_for_company
+    )
+
+    response = client.get("/companies/co-1/catalysts")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["nctId"] == "NCT001"
+    assert body[0]["expectedDate"] == "2027-01-01"
+
+
+def test_catalysts_returns_empty_list_when_none_found(monkeypatch):
+    async def fake_get_company(self, company_id):
+        return {"id": "co-1", "pipeline": []}
+
+    async def fake_get_catalysts_for_company(company, *, client):
+        return []
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+    monkeypatch.setattr(
+        companies_router_module, "get_catalysts_for_company", fake_get_catalysts_for_company
+    )
+
+    response = client.get("/companies/co-1/catalysts")
+    assert response.status_code == 200
+    assert response.json() == []

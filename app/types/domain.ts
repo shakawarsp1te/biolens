@@ -126,6 +126,27 @@ export interface ThesisMap {
   whatCouldGoWrong: string[];
 }
 
+/** GET /companies/{id}/catalysts (api/app/services/catalysts.py) — a real,
+ * upcoming date drawn straight from CT.gov's own disclosed trial-completion
+ * estimate, never a scraped or invented PDUFA guess. `dateType` is CT.gov's
+ * own designation (the sponsor's current projection, or already reached),
+ * not a BioLens confidence score. */
+export interface CatalystEvent {
+  id: string;
+  companyId: string;
+  drugId: string | null;
+  nctId: string;
+  eventType: "primary_completion" | "completion";
+  title: string;
+  phase: TrialPhase | null;
+  expectedDate: string;
+  dateType: "ESTIMATED" | "ACTUAL";
+  hasDayPrecision: boolean;
+  overallStatus: string | null;
+  source: string;
+  sourceUrl: string;
+}
+
 /** BUILD_BRIEF.txt §18-21: the full company profile screen. */
 export interface CompanyProfile {
   id: string;

@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
+import CatalystCalendarCard from "../../components/CatalystCalendarCard";
 import EvidenceBadge from "../../components/EvidenceBadge";
 import FinancialHealthCard from "../../components/FinancialHealthCard";
 import ListContainer from "../../components/ListContainer";
@@ -110,6 +111,8 @@ export default function CompanyProfileScreen() {
           <PipelineAssetRow key={asset.drugId} asset={asset} />
         ))}
       </ListContainer>
+
+      <CatalystCalendarCard key={company.id} companyId={company.id} />
 
       {company.ticker ? <FinancialHealthCard key={company.ticker} ticker={company.ticker} /> : null}
 

@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.services.catalysts import get_catalysts_for_company
+from app.services.clinicaltrials import ClinicalTrialsClient
 from app.services.company_store import get_company_store
 from app.services.discovery import run_discovery_pass
 
@@ -42,3 +44,18 @@ async def get_company(company_id: str) -> dict:
     if company is None:
         raise HTTPException(status_code=404, detail=f"No company found for id '{company_id}'.")
     return company
+
+
+@router.get("/{company_id}/catalysts")
+async def get_company_catalysts(company_id: str) -> list[dict]:
+    """Upcoming trial-readout catalysts for one company (see
+    app/services/catalysts.py) -- a real, sourced date per event, never an
+    invented one. An empty list is a normal outcome (no trial in this
+    company's pipeline has a disclosed upcoming completion date), not an
+    error, so this never 404s once the company itself exists."""
+    company = await get_company_store().get_company(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail=f"No company found for id '{company_id}'.")
+    async with ClinicalTrialsClient() as client:
+        events = await get_catalysts_for_company(company, client=client)
+    return [event.model_dump() for event in events]
