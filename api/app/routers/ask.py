@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core.rate_limit import enforce_llm_rate_limit
 from app.services.ask_biolens import AskBioLensError, ask_biolens
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
@@ -17,7 +18,7 @@ class AskBioLensRequest(BaseModel):
     source_ids: list[str] = []
 
 
-@router.post("/ask")
+@router.post("/ask", dependencies=[Depends(enforce_llm_rate_limit)])
 async def analyze_ask(request: AskBioLensRequest) -> dict:
     if not request.question.strip():
         raise HTTPException(status_code=422, detail="question must not be empty")

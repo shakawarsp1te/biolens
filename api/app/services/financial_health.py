@@ -109,7 +109,9 @@ def _latest_quarterly_burn(
     # `latest` spans more than one quarter (a YTD cumulative figure) --
     # subtract the most recent earlier filing that shares the same
     # fiscal-year start to isolate the discrete quarter between them.
-    same_year_start = [e for e in durationed if e["start"] == latest["start"] and e["end"] < latest["end"]]
+    same_year_start = [
+        e for e in durationed if e["start"] == latest["start"] and e["end"] < latest["end"]
+    ]
     if same_year_start:
         previous = max(same_year_start, key=lambda e: e["end"])
         discrete_days = _days_between(previous["end"], latest["end"])

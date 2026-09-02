@@ -59,9 +59,7 @@ async def get_financial_health(ticker: str) -> dict:
     async with SecEdgarClient() as client:
         cik = await client.get_cik(ticker)
         if cik is None:
-            raise HTTPException(
-                status_code=404, detail=f"'{ticker}' isn't a recognized SEC filer."
-            )
+            raise HTTPException(status_code=404, detail=f"'{ticker}' isn't a recognized SEC filer.")
         facts = await client.get_company_facts(cik)
 
     if facts is None:

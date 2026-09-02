@@ -9,16 +9,18 @@ POST /companies/discover triggers one auto-discovery pass
 (app/services/discovery.py) on demand -- in production this is what a
 cron job/scheduled task would call unattended (or use
 scripts/run_discovery.py directly); exposed here too for manual/on-demand
-triggering during development. Not auth-gated yet since no admin-role
-concept exists in this codebase's account system -- worth adding before
-any public deployment, since each call makes real LLM + ClinicalTrials.gov
-requests.
+triggering during development. Gated behind settings.admin_token (an
+X-Admin-Token header) once that's set -- each call makes real LLM +
+ClinicalTrials.gov requests, so this is what stops it being a free-to-
+anyone "spend BioLens's Anthropic credits" button on a public deployment.
+Left as no-op (open) when admin_token is unset, matching local-dev today.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
+from app.core.config import get_settings
 from app.services.catalysts import get_catalysts_for_company
 from app.services.clinicaltrials import ClinicalTrialsClient
 from app.services.company_store import get_company_store
@@ -27,13 +29,22 @@ from app.services.discovery import run_discovery_pass
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 
+def _require_admin(x_admin_token: str | None) -> None:
+    expected = get_settings().admin_token
+    if expected and x_admin_token != expected:
+        raise HTTPException(status_code=401, detail="Missing or incorrect X-Admin-Token header.")
+
+
 @router.get("")
 async def list_companies() -> list[dict]:
     return await get_company_store().list_companies()
 
 
 @router.post("/discover")
-async def discover(max_new: int = Query(3, ge=1, le=10)) -> dict:
+async def discover(
+    max_new: int = Query(3, ge=1, le=10), x_admin_token: str | None = Header(default=None)
+) -> dict:
+    _require_admin(x_admin_token)
     added = await run_discovery_pass(max_new=max_new)
     return {"added": added, "count": len(added)}
 

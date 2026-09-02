@@ -105,9 +105,7 @@ class SecEdgarClient:
         never an app-breaking error)."""
         cache_key = f"sec:facts:{cik}"
         cached = await self._cache.get(cache_key)
-        fresh = cached is not None and (
-            time.time() - cached.fetched_at < _FACTS_CACHE_TTL_SECONDS
-        )
+        fresh = cached is not None and (time.time() - cached.fetched_at < _FACTS_CACHE_TTL_SECONDS)
         if fresh:
             return cached.value
 

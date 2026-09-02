@@ -35,7 +35,12 @@ _RECENT_ACTUAL_WINDOW_DAYS = 90
 # (event_type, human label, CT.gov date field, CT.gov date-type field) --
 # parse_study_summary already normalizes both into these keys.
 _EVENT_FIELDS: list[tuple[str, str, str, str]] = [
-    ("primary_completion", "Primary completion", "primary_completion_date", "primary_completion_date_type"),
+    (
+        "primary_completion",
+        "Primary completion",
+        "primary_completion_date",
+        "primary_completion_date_type",
+    ),
     ("completion", "Full trial completion", "completion_date", "completion_date_type"),
 ]
 

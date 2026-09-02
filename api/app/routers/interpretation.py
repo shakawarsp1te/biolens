@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core.rate_limit import enforce_llm_rate_limit
 from app.services.interpretation import (
     InterpretationError,
     classify_evidence,
@@ -24,7 +25,7 @@ class InterpretationRequest(BaseModel):
     follow_up_adequate: bool | None = None
 
 
-@router.post("/interpretation")
+@router.post("/interpretation", dependencies=[Depends(enforce_llm_rate_limit)])
 async def analyze_interpretation(request: InterpretationRequest) -> dict:
     evidence_classification = classify_evidence(
         primary_endpoint_met=request.primary_endpoint_met,

@@ -6,7 +6,7 @@
     "scheme": "biolens",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",

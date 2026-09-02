@@ -73,6 +73,15 @@ class Settings(BaseSettings):
     # placeholder), same as pubmed_contact_email being optional.
     sec_edgar_contact_email: str = ""
 
+    # POST /companies/discover runs multiple real LLM + ClinicalTrials.gov
+    # calls per invocation and isn't something an end user needs to trigger
+    # (companies are already seeded) -- once this API is reachable from the
+    # public internet, this is what keeps it from being a free-to-anyone
+    # "spend BioLens's Anthropic credits" button. Left empty (the default)
+    # it stays open, matching today's local-dev behavior; set it before any
+    # public deploy and pass the same value as `X-Admin-Token`.
+    admin_token: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -78,6 +78,54 @@ def test_discover_rejects_max_new_outside_bounds():
     assert response.status_code == 422
 
 
+def test_discover_is_open_when_no_admin_token_configured(monkeypatch):
+    # Today's local-dev default: settings.admin_token is unset, so this
+    # stays open -- matches every other test above, which never set a token.
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "")
+
+    async def fake_run_discovery_pass(*, max_new):
+        return []
+
+    monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
+
+    response = client.post("/companies/discover")
+    assert response.status_code == 200
+
+
+def test_discover_rejects_missing_token_once_admin_token_is_configured(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "correct-token")
+
+    response = client.post("/companies/discover")
+    assert response.status_code == 401
+
+
+def test_discover_rejects_wrong_token(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "correct-token")
+
+    response = client.post("/companies/discover", headers={"X-Admin-Token": "wrong-token"})
+    assert response.status_code == 401
+
+
+def test_discover_accepts_correct_token(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "correct-token")
+
+    async def fake_run_discovery_pass(*, max_new):
+        return []
+
+    monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
+
+    response = client.post("/companies/discover", headers={"X-Admin-Token": "correct-token"})
+    assert response.status_code == 200
+
+
 # --- GET /companies/{id}/catalysts ---
 
 

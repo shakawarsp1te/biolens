@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.core.rate_limit import enforce_llm_rate_limit
 from app.services.readout_extraction import ReadoutExtractionError, extract_readout
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
@@ -14,7 +15,7 @@ class ReadoutRequest(BaseModel):
     text: str
 
 
-@router.post("/readout")
+@router.post("/readout", dependencies=[Depends(enforce_llm_rate_limit)])
 async def analyze_readout(request: ReadoutRequest) -> dict:
     if not request.text.strip():
         raise HTTPException(status_code=422, detail="text must not be empty")
