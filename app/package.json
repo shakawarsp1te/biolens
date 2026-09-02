@@ -35,8 +35,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "ensure-expo-env": "test -f expo-env.d.ts || printf '/// <reference types=\"expo/types\" />\\n' > expo-env.d.ts",
+    "prelint": "npm run ensure-expo-env",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "pretypecheck": "npm run ensure-expo-env",
     "typecheck": "tsc --noEmit"
   },
   "private": true

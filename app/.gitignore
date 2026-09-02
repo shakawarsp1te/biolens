@@ -7,8 +7,12 @@ node_modules/
 .expo/
 dist/
 web-build/
-# expo-env.d.ts is deliberately NOT ignored -- see its own top-of-file
-# comment for why (CI needs it committed to typecheck cleanly).
+# Left gitignored (Expo's own default) rather than fighting it -- `expo
+# start`/`expo install` re-add this line via their own "sync" mechanism
+# every time they run locally, which silently undoes a manual un-ignore.
+# CI safety for its absence lives in package.json's ensure-expo-env
+# script instead (see prelint/pretypecheck).
+expo-env.d.ts
 
 # Native
 .kotlin/
