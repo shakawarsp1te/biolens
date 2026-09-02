@@ -7,7 +7,8 @@ node_modules/
 .expo/
 dist/
 web-build/
-expo-env.d.ts
+# expo-env.d.ts is deliberately NOT ignored -- see its own top-of-file
+# comment for why (CI needs it committed to typecheck cleanly).
 
 # Native
 .kotlin/
