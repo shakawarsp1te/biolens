@@ -1,5 +1,7 @@
 # BioLens
 
+[![CI](https://github.com/shakawarsp1te/biolens/actions/workflows/ci.yml/badge.svg)](https://github.com/shakawarsp1te/biolens/actions/workflows/ci.yml)
+
 **The frontier of biotechnology, explained simply — for investors who want to understand emerging biotech before it's obvious, not just be told what to buy.**
 
 BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-language company profiles, trial interpretations, and catalyst calendars — with a hard rule running through every screen: it explains the science and the evidence, and it never tells you what to do about it. No BUY/SELL calls, no price targets, no fabricated confidence scores.
