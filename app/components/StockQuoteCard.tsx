@@ -100,7 +100,7 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
         <Pressable onPress={openDetail} hitSlop={8}>
           <Text style={styles.detailLink}>View detailed chart ›</Text>
         </Pressable>
-        <Text style={styles.disclaimer}>Not investment advice</Text>
+        <Text style={styles.disclaimer}>Not investment advice.</Text>
       </View>
     </View>
   );
@@ -133,10 +133,12 @@ const styles = StyleSheet.create({
     height: CHART_HEIGHT,
   },
   footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    // Stacked, not a row split with space-between: at a narrow width (a
+    // phone, or this card in a narrow web viewport) two independently-
+    // wrapping text nodes sharing one row wrap unpredictably against each
+    // other. Vertical is robust at any width.
     marginTop: spacing.sm,
+    gap: 2,
   },
   detailLink: {
     ...typography.body,
