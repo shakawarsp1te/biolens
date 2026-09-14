@@ -140,3 +140,51 @@ async def test_company_facts_network_error_falls_back_to_stale_cache():
 async def test_user_agent_falls_back_to_placeholder_when_no_contact_configured():
     client = SecEdgarClient()
     assert "@" in client._user_agent()
+
+
+SUBMISSIONS_RESPONSE = {
+    "cik": 1213037,
+    "name": "Cardiff Oncology, Inc.",
+    "filings": {
+        "recent": {
+            "form": ["8-K", "4"],
+            "accessionNumber": ["0001213900-26-000111", "0001213900-26-000110"],
+            "filingDate": ["2026-08-20", "2026-08-19"],
+            "primaryDocument": ["crdf-8k.htm", "xslF345X06/ownership.xml"],
+        }
+    },
+}
+
+
+@pytest.mark.asyncio
+async def test_get_submissions_parses_and_caches():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == "https://data.sec.gov/submissions/CIK0001213037.json"
+        return httpx.Response(200, json=SUBMISSIONS_RESPONSE)
+
+    transport = RequestCountingTransport(handler)
+    http_client = httpx.AsyncClient(transport=transport)
+    cache = InMemoryCacheStore()
+
+    async with SecEdgarClient(http_client=http_client, cache=cache) as client:
+        first = await client.get_submissions("0001213037")
+        second = await client.get_submissions("0001213037")
+
+    assert first is not None
+    assert first["name"] == "Cardiff Oncology, Inc."
+    assert second == first
+    assert transport.request_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_submissions_returns_none_on_404():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"error": "not found"})
+
+    transport = RequestCountingTransport(handler)
+    http_client = httpx.AsyncClient(transport=transport)
+
+    async with SecEdgarClient(http_client=http_client, cache=InMemoryCacheStore()) as client:
+        submissions = await client.get_submissions("0000000000")
+
+    assert submissions is None

@@ -147,6 +147,28 @@ export interface CatalystEvent {
   sourceUrl: string;
 }
 
+/** GET /companies/{id}/signals and GET /signals/recent
+ * (api/app/services/scan.py) — a real, sourced fact BioLens's continuous
+ * scan detected as new since the last pass: a new PubMed paper, or a new
+ * SEC filing. Deliberately not a prediction, score, or interpretation of
+ * what the fact means for a stock — see api/app/services/paper_monitor.py
+ * and filing_monitor.py's module docstrings. */
+export interface SignalEvent {
+  id: string;
+  companyId: string;
+  signalType: "new_paper" | "new_filing";
+  title: string;
+  detail: string | null;
+  /** The fact's own date, as free text (PubMed's date format varies too
+   * much to normalize) — display only, never used for sorting. */
+  occurredAt: string;
+  /** When BioLens's scan found it — a real ISO datetime, and the actual
+   * sort key for every signal list. */
+  detectedAt: string;
+  source: string;
+  sourceUrl: string;
+}
+
 /** BUILD_BRIEF.txt §18-21: the full company profile screen. */
 export interface CompanyProfile {
   id: string;

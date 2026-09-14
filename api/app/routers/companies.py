@@ -20,19 +20,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException, Query
 
-from app.core.config import get_settings
+from app.core.admin import require_admin_token
 from app.services.catalysts import get_catalysts_for_company
 from app.services.clinicaltrials import ClinicalTrialsClient
 from app.services.company_store import get_company_store
 from app.services.discovery import run_discovery_pass
+from app.services.signal_store import get_signal_store
 
 router = APIRouter(prefix="/companies", tags=["companies"])
-
-
-def _require_admin(x_admin_token: str | None) -> None:
-    expected = get_settings().admin_token
-    if expected and x_admin_token != expected:
-        raise HTTPException(status_code=401, detail="Missing or incorrect X-Admin-Token header.")
 
 
 @router.get("")
@@ -44,7 +39,7 @@ async def list_companies() -> list[dict]:
 async def discover(
     max_new: int = Query(3, ge=1, le=10), x_admin_token: str | None = Header(default=None)
 ) -> dict:
-    _require_admin(x_admin_token)
+    require_admin_token(x_admin_token)
     added = await run_discovery_pass(max_new=max_new)
     return {"added": added, "count": len(added)}
 
@@ -70,3 +65,16 @@ async def get_company_catalysts(company_id: str) -> list[dict]:
     async with ClinicalTrialsClient() as client:
         events = await get_catalysts_for_company(company, client=client)
     return [event.model_dump() for event in events]
+
+
+@router.get("/{company_id}/signals")
+async def get_company_signals(company_id: str, limit: int = Query(20, ge=1, le=100)) -> list[dict]:
+    """New papers and new SEC filings the continuous-scan pipeline
+    (app/services/scan.py) has found for this company, most recent first.
+    Each is a plain sourced fact -- never a prediction of what it means for
+    the stock. An empty list is a normal outcome (nothing new since the
+    last scan, or no scan has run yet), not an error."""
+    company = await get_company_store().get_company(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail=f"No company found for id '{company_id}'.")
+    return await get_signal_store().list_signals_for_company(company_id, limit=limit)

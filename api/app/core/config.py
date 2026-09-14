@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # shipping a new app build. Stands in for the real Postgres `companies`
     # table the same way user_db_path stands in for Supabase Auth.
     company_db_path: str = "db/biolens_companies.sqlite3"
+    # Continuous-scan state (app/services/signal_store.py) -- what's already
+    # been seen per company (so a re-scan reports only genuinely new papers/
+    # filings) plus the resulting signal events. Same interim-store pattern.
+    signal_db_path: str = "db/biolens_signals.sqlite3"
     # Where verification links point — the API itself, since the link is
     # opened directly in whatever browser the user's email client hands off
     # to, not deep-linked into the Expo app at this stage.
@@ -81,6 +85,15 @@ class Settings(BaseSettings):
     # it stays open, matching today's local-dev behavior; set it before any
     # public deploy and pass the same value as `X-Admin-Token`.
     admin_token: str = ""
+
+    # Continuous-scan background loop (app/services/scan.py) -- off by
+    # default. FastAPI's TestClient runs the full app lifespan on every
+    # test that constructs one, so leaving this on by default would fire
+    # real PubMed/SEC network calls during `pytest`. Set to true only on a
+    # deployment that should scan on its own schedule while the process is
+    # alive; POST /scan/run (admin-gated) works regardless of this setting,
+    # and is what an external cron should call for a guaranteed schedule.
+    enable_background_scan: bool = False
 
 
 @lru_cache

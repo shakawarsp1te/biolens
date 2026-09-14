@@ -27,9 +27,14 @@ from app.services.cache import CacheStore, get_cache_store
 
 _TICKER_MAP_URL = "https://www.sec.gov/files/company_tickers.json"
 _FACTS_URL_TEMPLATE = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
+_SUBMISSIONS_URL_TEMPLATE = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 
 _TICKER_MAP_CACHE_TTL_SECONDS = 24 * 3600.0
 _FACTS_CACHE_TTL_SECONDS = 6 * 3600.0
+# A new filing is exactly the kind of thing filing_monitor.py wants to
+# notice same-day -- much shorter than the facts cache above, which only
+# needs to reflect a new quarterly/annual report every few months.
+_SUBMISSIONS_CACHE_TTL_SECONDS = 1800.0
 
 
 class SecEdgarClient:
@@ -125,3 +130,33 @@ class SecEdgarClient:
 
         await self._cache.set(cache_key, facts)
         return facts
+
+    async def get_submissions(self, cik: str) -> dict[str, Any] | None:
+        """A company's real SEC filing history (form type, filing date,
+        accession number per filing) for a 10-digit CIK -- backs
+        filing_monitor.py's new-filing detection. Same graceful-degradation
+        contract as get_company_facts."""
+        cache_key = f"sec:submissions:{cik}"
+        cached = await self._cache.get(cache_key)
+        fresh = cached is not None and (
+            time.time() - cached.fetched_at < _SUBMISSIONS_CACHE_TTL_SECONDS
+        )
+        if fresh:
+            return cached.value
+
+        assert self._http_client is not None, "use `async with SecEdgarClient() as client:`"
+        try:
+            response = await self._http_client.get(_SUBMISSIONS_URL_TEMPLATE.format(cik=int(cik)))
+        except httpx.HTTPError:
+            return cached.value if cached is not None else None
+
+        if response.status_code != 200:
+            return cached.value if cached is not None else None
+
+        try:
+            submissions = response.json()
+        except ValueError:
+            return cached.value if cached is not None else None
+
+        await self._cache.set(cache_key, submissions)
+        return submissions

@@ -9,6 +9,7 @@ import FinancialHealthCard from "../../components/FinancialHealthCard";
 import ListContainer from "../../components/ListContainer";
 import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
+import SignalFeedCard from "../../components/SignalFeedCard";
 import StockQuoteCard from "../../components/StockQuoteCard";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, radii, spacing, typography } from "../../constants/theme";
@@ -113,6 +114,8 @@ export default function CompanyProfileScreen() {
       </ListContainer>
 
       <CatalystCalendarCard key={company.id} companyId={company.id} />
+
+      <SignalFeedCard key={company.id} companyId={company.id} />
 
       {company.ticker ? <FinancialHealthCard key={company.ticker} ticker={company.ticker} /> : null}
 

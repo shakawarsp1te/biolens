@@ -9,7 +9,7 @@
  * string is all a GET query string needs.
  */
 
-import { CatalystEvent, CompanyRecord } from "../types/domain";
+import { CatalystEvent, CompanyRecord, SignalEvent } from "../types/domain";
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -385,4 +385,18 @@ export function getCompany(id: string): Promise<CompanyRecord | null> {
  * upcoming date), not an error. */
 export function getCompanyCatalysts(id: string): Promise<CatalystEvent[]> {
   return apiGet<CatalystEvent[]>(`/companies/${encodeURIComponent(id)}/catalysts`);
+}
+
+// --- Continuous scan signals (api/app/routers/companies.py, signals.py) ---
+//
+// New papers/filings BioLens's background scan (api/app/services/scan.py)
+// has found. Plain sourced facts, same "empty array is normal" contract as
+// catalysts above — nothing new since the last pass is the common case.
+
+export function getCompanySignals(id: string, limit = 20): Promise<SignalEvent[]> {
+  return apiGet<SignalEvent[]>(`/companies/${encodeURIComponent(id)}/signals`, { limit });
+}
+
+export function getRecentSignals(limit = 20): Promise<SignalEvent[]> {
+  return apiGet<SignalEvent[]>("/signals/recent", { limit });
 }

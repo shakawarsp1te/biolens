@@ -197,3 +197,63 @@ def test_catalysts_returns_empty_list_when_none_found(monkeypatch):
     response = client.get("/companies/co-1/catalysts")
     assert response.status_code == 200
     assert response.json() == []
+
+
+# --- GET /companies/{id}/signals ---
+
+
+def test_signals_returns_404_when_company_missing(monkeypatch):
+    async def fake_get_company(self, company_id):
+        return None
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+
+    response = client.get("/companies/not-a-real-id/signals")
+    assert response.status_code == 404
+
+
+def test_signals_returns_stored_signals_for_an_existing_company(monkeypatch):
+    async def fake_get_company(self, company_id):
+        assert company_id == "co-1"
+        return {"id": "co-1", "name": "Test Co"}
+
+    async def fake_list_signals_for_company(self, company_id, *, limit):
+        assert company_id == "co-1"
+        assert limit == 20
+        return [{"id": "paper:1", "title": "A paper"}]
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+    monkeypatch.setattr(
+        companies_router_module.get_signal_store().__class__,
+        "list_signals_for_company",
+        fake_list_signals_for_company,
+    )
+
+    response = client.get("/companies/co-1/signals")
+    assert response.status_code == 200
+    assert response.json() == [{"id": "paper:1", "title": "A paper"}]
+
+
+def test_signals_forwards_limit_query_param(monkeypatch):
+    async def fake_get_company(self, company_id):
+        return {"id": "co-1"}
+
+    async def fake_list_signals_for_company(self, company_id, *, limit):
+        assert limit == 5
+        return []
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+    monkeypatch.setattr(
+        companies_router_module.get_signal_store().__class__,
+        "list_signals_for_company",
+        fake_list_signals_for_company,
+    )
+
+    response = client.get("/companies/co-1/signals", params={"limit": 5})
+    assert response.status_code == 200

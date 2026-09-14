@@ -1,9 +1,11 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.config import get_settings
 from app.models.company import CompanyProfileModel
 from app.routers import (
     ask,
@@ -15,9 +17,12 @@ from app.routers import (
     market,
     pubmed,
     readout,
+    scan,
+    signals,
 )
 from app.seed_data.companies import COMPANIES
 from app.services.company_store import get_company_store
+from app.services.scan import run_scan_loop
 
 # Without this, our own loggers (e.g. app.services.email's "biolens.email")
 # inherit the root logger's default WARNING level and their INFO messages —
@@ -38,7 +43,18 @@ async def lifespan(_app: FastAPI):
     if await store.count() == 0:
         for raw in COMPANIES:
             await store.upsert_company(CompanyProfileModel(**raw).model_dump())
+
+    # Off by default -- see scan.py's module docstring for why (TestClient
+    # runs this same lifespan on every test, so an always-on loop here
+    # would fire real network calls during `pytest`).
+    background_task: asyncio.Task | None = None
+    if get_settings().enable_background_scan:
+        background_task = asyncio.create_task(run_scan_loop())
+
     yield
+
+    if background_task is not None:
+        background_task.cancel()
 
 
 app = FastAPI(
@@ -65,3 +81,5 @@ app.include_router(ask.router)
 app.include_router(market.router)
 app.include_router(auth.router)
 app.include_router(companies.router)
+app.include_router(scan.router)
+app.include_router(signals.router)
