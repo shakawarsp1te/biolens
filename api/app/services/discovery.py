@@ -83,7 +83,6 @@ LARGE_PHARMA_DENYLIST = {
 }
 
 
-
 def is_large_pharma(sponsor_name: str) -> bool:
     """True when the sponsor name starts with a denylisted name as whole
     words -- CT.gov lists subsidiaries under longer names ("Janssen
