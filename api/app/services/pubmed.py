@@ -54,6 +54,19 @@ def _rate_for(api_key: str) -> float:
     return 10.0 if api_key else 3.0
 
 
+# NCBI still returns the occasional 429 even when callers stay under the
+# documented rate (seen live during a full 10-company scan pass), so a
+# 429 is retried with backoff rather than failing that company's scan.
+_MAX_RETRIES_ON_429 = 3
+_RETRY_BACKOFF_SECONDS = 1.0
+
+# Search results change as new papers are indexed, so -- unlike esummary/
+# efetch, which are fixed per PMID -- esearch entries expire. Without this,
+# a long-running server's repeated scan passes would keep seeing the first
+# pass's cached PMID list and never report a new paper.
+_ESEARCH_CACHE_TTL_SECONDS = 3600.0
+
+
 def build_drug_search_term(drug_name: str, aliases: list[str] | None = None) -> str:
     """Targeted search by drug name/alias: OR's the primary name with any
     aliases, each quoted so multi-word names/aliases aren't split apart."""
@@ -136,15 +149,19 @@ class PubMedClient:
 
     async def _get(self, path: str, params: dict[str, Any]) -> httpx.Response:
         assert self._http_client is not None, "use `async with PubMedClient() as client:`"
-        await self._rate_limiter.wait()
-        response = await self._http_client.get(path, params={**self._base_params(), **params})
+        for attempt in range(_MAX_RETRIES_ON_429 + 1):
+            await self._rate_limiter.wait()
+            response = await self._http_client.get(path, params={**self._base_params(), **params})
+            if response.status_code != 429 or attempt == _MAX_RETRIES_ON_429:
+                break
+            await asyncio.sleep(_RETRY_BACKOFF_SECONDS * 2**attempt)
         response.raise_for_status()
         return response
 
     async def esearch(self, term: str, *, retmax: int = 10) -> list[str]:
         cache_key = f"pubmed:esearch:{term}:{retmax}"
         cached = await self._cache.get(cache_key)
-        if cached is not None:
+        if cached is not None and time.time() - cached.fetched_at < _ESEARCH_CACHE_TTL_SECONDS:
             return cached.value["idlist"]
 
         response = await self._get(

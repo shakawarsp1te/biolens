@@ -83,7 +83,7 @@ class NotConfiguredProvider(LLMProvider):
 class AnthropicProvider(LLMProvider):
     """Not live-verified — see this module's docstring."""
 
-    def __init__(self, *, api_key: str, model: str = "claude-opus-5"):
+    def __init__(self, *, api_key: str, model: str = "claude-opus-5-5"):
         import anthropic
 
         self._client = anthropic.AsyncAnthropic(api_key=api_key)

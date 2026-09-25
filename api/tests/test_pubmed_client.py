@@ -206,3 +206,57 @@ class TestRateLimiter:
 
         assert _rate_for("") == 3.0
         assert _rate_for("some-key") == 10.0
+
+
+@pytest.mark.asyncio
+async def test_429_is_retried_then_succeeds(no_wait_limiter, monkeypatch):
+    monkeypatch.setattr("app.services.pubmed._RETRY_BACKOFF_SECONDS", 0.0)
+    responses = iter([429, 429, 200])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        status = next(responses)
+        if status == 429:
+            return httpx.Response(429)
+        return httpx.Response(200, json=load_json("pubmed_esearch_drug.json"))
+
+    transport = RequestCountingTransport(handler)
+    http_client = httpx.AsyncClient(
+        base_url="https://eutils.ncbi.nlm.nih.gov/entrez/eutils", transport=transport
+    )
+    async with PubMedClient(
+        http_client=http_client, cache=InMemoryCacheStore(), rate_limiter=no_wait_limiter
+    ) as client:
+        pmids = await client.search_by_drug_name("onvansertib")
+
+    assert pmids == load_json("pubmed_esearch_drug.json")["esearchresult"]["idlist"]
+    assert transport.request_count == 3
+
+
+@pytest.mark.asyncio
+async def test_persistent_429_still_raises(no_wait_limiter, monkeypatch):
+    monkeypatch.setattr("app.services.pubmed._RETRY_BACKOFF_SECONDS", 0.0)
+    transport = RequestCountingTransport(lambda request: httpx.Response(429))
+    http_client = httpx.AsyncClient(
+        base_url="https://eutils.ncbi.nlm.nih.gov/entrez/eutils", transport=transport
+    )
+    async with PubMedClient(
+        http_client=http_client, cache=InMemoryCacheStore(), rate_limiter=no_wait_limiter
+    ) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.search_by_drug_name("onvansertib")
+
+    assert transport.request_count == 4
+
+
+@pytest.mark.asyncio
+async def test_expired_esearch_cache_refetches(
+    http_client, transport, no_wait_limiter, monkeypatch
+):
+    cache = InMemoryCacheStore()
+    async with PubMedClient(
+        http_client=http_client, cache=cache, rate_limiter=no_wait_limiter
+    ) as client:
+        await client.search_by_drug_name("onvansertib")
+        monkeypatch.setattr("app.services.pubmed._ESEARCH_CACHE_TTL_SECONDS", 0.0)
+        await client.search_by_drug_name("onvansertib")
+    assert transport.request_count == 2

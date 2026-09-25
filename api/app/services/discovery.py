@@ -82,6 +82,17 @@ LARGE_PHARMA_DENYLIST = {
     "otsuka",
 }
 
+
+
+def is_large_pharma(sponsor_name: str) -> bool:
+    """True when the sponsor name starts with a denylisted name as whole
+    words -- CT.gov lists subsidiaries under longer names ("Janssen
+    Research & Development, LLC", "Pfizer Inc."), which an exact match
+    let through (caught live: two J&J entities drafted as "new companies")."""
+    lowered = sponsor_name.strip().lower()
+    return any(re.match(rf"{re.escape(name)}\b", lowered) for name in LARGE_PHARMA_DENYLIST)
+
+
 _ACTIVE_STATUSES = {"RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROLLING_BY_INVITATION"}
 _INVESTMENT_PHRASES = ("buy rating", "price target", "strong buy", "sell rating", "we recommend")
 
@@ -137,7 +148,7 @@ async def find_candidate_sponsors(
         if not sponsor:
             continue
         lowered = sponsor.strip().lower()
-        if lowered in seen_lower or lowered in known_names or lowered in LARGE_PHARMA_DENYLIST:
+        if lowered in seen_lower or lowered in known_names or is_large_pharma(lowered):
             continue
         seen_lower.add(lowered)
         candidates.append(sponsor.strip())

@@ -21,6 +21,7 @@ from app.services.discovery import (
     estimate_frontier_components,
     fetch_sponsor_trials,
     find_candidate_sponsors,
+    is_large_pharma,
     run_discovery_pass,
     slugify,
 )
@@ -447,3 +448,16 @@ async def test_run_discovery_pass_skips_a_candidate_with_no_real_trials(tmp_path
 
     added = await run_discovery_pass(store=store, provider=provider, max_new=1)
     assert added == []
+
+
+def test_is_large_pharma_catches_subsidiary_names():
+    assert is_large_pharma("Janssen Pharmaceutica N.V., Belgium")
+    assert is_large_pharma("Johnson & Johnson Enterprise Innovation Inc.")
+    assert is_large_pharma("Pfizer Inc.")
+    assert is_large_pharma("Hoffmann-La Roche")
+
+
+def test_is_large_pharma_requires_whole_word_prefix():
+    assert not is_large_pharma("Small Bio Inc")
+    assert not is_large_pharma("Bayerische Biotech GmbH")
+    assert not is_large_pharma("Partner of Pfizer Therapeutics")
