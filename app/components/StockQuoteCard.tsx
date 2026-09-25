@@ -1,9 +1,17 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { getStockHistory, getStockQuote, StockHistoryPoint, StockQuote } from "../services/api";
 import PriceChart from "./PriceChart";
+import { currencyPrefix } from "../utils/currency";
 
 type State =
   | { status: "loading" }
@@ -42,7 +50,9 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
       .then(([quote, history]) => {
         if (cancelled) return;
         setState(
-          quote ? { status: "loaded", quote, history: history?.points ?? [] } : { status: "unavailable" },
+          quote
+            ? { status: "loaded", quote, history: history?.points ?? [] }
+            : { status: "unavailable" },
         );
       })
       .catch(() => {
@@ -80,7 +90,7 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
     <View style={styles.card}>
       <Pressable onPress={openDetail}>
         <Text style={styles.price}>
-          {quote.currency === "USD" ? "$" : ""}
+          {currencyPrefix(quote.currency)}
           {quote.price.toFixed(2)}
         </Text>
         <Text style={[styles.change, { color: changeColor }]}>
@@ -92,7 +102,12 @@ export default function StockQuoteCard({ ticker }: { ticker: string }) {
 
       <View style={styles.chartWrap} onLayout={handleLayout}>
         {chartWidth > 0 && history.length > 1 ? (
-          <PriceChart points={history} width={chartWidth} height={CHART_HEIGHT} onExpand={openDetail} />
+          <PriceChart
+            points={history}
+            width={chartWidth}
+            height={CHART_HEIGHT}
+            onExpand={openDetail}
+          />
         ) : null}
       </View>
 

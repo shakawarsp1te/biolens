@@ -20,6 +20,7 @@ import {
   StockHistoryPoint,
   StockQuote,
 } from "../services/api";
+import { currencyPrefix } from "../utils/currency";
 
 const RANGES: ChartRange[] = ["1D", "1W", "1M", "3M", "1Y"];
 const CHART_HEIGHT = 220;
@@ -39,9 +40,9 @@ export default function StockDetailScreen() {
   // switched away from is never rendered, without needing to setState(null)
   // synchronously at the top of the effect (that's still true while a new
   // range's fetch is in flight — the old chart stays up until it resolves).
-  const [historyByRange, setHistoryByRange] = useState<Partial<Record<ChartRange, StockHistoryPoint[]>>>(
-    {},
-  );
+  const [historyByRange, setHistoryByRange] = useState<
+    Partial<Record<ChartRange, StockHistoryPoint[]>>
+  >({});
   const [chartWidth, setChartWidth] = useState(0);
   const [error, setError] = useState(false);
 
@@ -82,7 +83,9 @@ export default function StockDetailScreen() {
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.ticker}>{ticker}</Text>
-          {quote?.company_name ? <Text style={styles.companyName}>{quote.company_name}</Text> : null}
+          {quote?.company_name ? (
+            <Text style={styles.companyName}>{quote.company_name}</Text>
+          ) : null}
         </View>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>✕</Text>
@@ -92,7 +95,7 @@ export default function StockDetailScreen() {
       {quote ? (
         <>
           <Text style={styles.price}>
-            {quote.currency === "USD" ? "$" : ""}
+            {currencyPrefix(quote.currency)}
             {quote.price.toFixed(2)}
           </Text>
           <Text style={[styles.change, { color: changeColor }]}>

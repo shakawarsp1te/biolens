@@ -14,14 +14,15 @@ import pytest
 
 from app.services.company_store import CompanyStore
 from app.services.discovery import (
-    LARGE_PHARMA_DENYLIST,
     DiscoveryDraftError,
     assemble_profile,
+    candidate_for_name,
     draft_narrative,
     estimate_frontier_components,
     fetch_sponsor_trials,
     find_candidate_sponsors,
-    is_large_pharma,
+    normalize_sponsor,
+    resolve_parent,
     run_discovery_pass,
     slugify,
 )
@@ -95,6 +96,7 @@ def _sponsor_search_response(name: str) -> dict:
                     "designModule": {"phases": ["PHASE1"]},
                     "conditionsModule": {"conditions": ["Solid Tumors"]},
                     "armsInterventionsModule": {"interventions": [{"name": "TEST-001"}]},
+                    "sponsorCollaboratorsModule": {"leadSponsor": {"name": name}},
                 }
             }
         ]
@@ -129,7 +131,7 @@ def test_slugify_falls_back_to_a_random_id_for_empty_input():
 
 
 @pytest.mark.asyncio
-async def test_find_candidate_sponsors_excludes_known_and_large_pharma():
+async def test_find_candidate_sponsors_excludes_known_and_keeps_large_as_parent():
     def handler(request: httpx.Request) -> httpx.Response:
         assert "LeadSponsorClass" in request.url.params["filter.advanced"]
         return httpx.Response(
@@ -143,7 +145,8 @@ async def test_find_candidate_sponsors_excludes_known_and_large_pharma():
     candidates = await find_candidate_sponsors(
         known_names={"already known co"}, http_client=http_client
     )
-    assert candidates == ["Small Bio Inc"]
+    assert [c.name for c in candidates] == ["Small Bio Inc", "Pfizer"]
+    assert candidates[1].parent is not None and candidates[1].parent.ticker == "PFE"
 
 
 @pytest.mark.asyncio
@@ -157,7 +160,7 @@ async def test_find_candidate_sponsors_dedupes_case_insensitively():
         base_url="https://clinicaltrials.gov/api/v2", transport=httpx.MockTransport(handler)
     )
     candidates = await find_candidate_sponsors(known_names=set(), http_client=http_client)
-    assert candidates == ["Small Bio Inc"]
+    assert [c.name for c in candidates] == ["Small Bio Inc"]
 
 
 @pytest.mark.asyncio
@@ -176,9 +179,17 @@ async def test_find_candidate_sponsors_respects_max_candidates():
     assert len(candidates) == 3
 
 
-def test_large_pharma_denylist_contains_well_known_companies():
-    assert "pfizer" in LARGE_PHARMA_DENYLIST
-    assert "novartis" in LARGE_PHARMA_DENYLIST
+def test_subsidiaries_resolve_to_their_parent():
+    assert resolve_parent("Janssen Pharmaceutica N.V., Belgium").name == "Johnson & Johnson"
+    assert resolve_parent("Johnson & Johnson Enterprise Innovation Inc.").ticker == "JNJ"
+    assert resolve_parent("Genentech, Inc.").name == "Roche"
+    assert resolve_parent("Fortvita Biologics (USA)Inc.").ticker == "1801.HK"
+
+
+def test_resolve_parent_requires_whole_word_prefix():
+    assert resolve_parent("Small Bio Inc") is None
+    assert resolve_parent("Bayerische Biotech GmbH") is None
+    assert resolve_parent("Partner of Pfizer Therapeutics") is None
 
 
 # --- fetch_sponsor_trials ---
@@ -201,6 +212,7 @@ async def test_fetch_sponsor_trials_parses_real_shape():
             "phases": ["PHASE1"],
             "conditions": ["Solid Tumors"],
             "interventions": ["TEST-001"],
+            "lead_sponsor": "Small Bio Inc",
         }
     ]
 
@@ -450,14 +462,111 @@ async def test_run_discovery_pass_skips_a_candidate_with_no_real_trials(tmp_path
     assert added == []
 
 
-def test_is_large_pharma_catches_subsidiary_names():
-    assert is_large_pharma("Janssen Pharmaceutica N.V., Belgium")
-    assert is_large_pharma("Johnson & Johnson Enterprise Innovation Inc.")
-    assert is_large_pharma("Pfizer Inc.")
-    assert is_large_pharma("Hoffmann-La Roche")
+def test_normalize_sponsor_strips_punctuation_and_corporate_suffixes():
+    assert normalize_sponsor("XYone Therapeutics, Inc") == "xyone therapeutics"
+    assert normalize_sponsor("Acme Bio Co., Ltd.") == "acme bio"
 
 
-def test_is_large_pharma_requires_whole_word_prefix():
-    assert not is_large_pharma("Small Bio Inc")
-    assert not is_large_pharma("Bayerische Biotech GmbH")
-    assert not is_large_pharma("Partner of Pfizer Therapeutics")
+def test_independent_candidate_owns_only_its_own_lead_sponsored_trials():
+    candidate = candidate_for_name("XYone Therapeutics")
+    assert candidate.parent is None
+    assert candidate.owns("XYone Therapeutics, Inc")
+    assert not candidate.owns("Innovent Biologics (Suzhou) Co. Ltd.")
+
+
+def test_parent_candidate_owns_every_subsidiarys_trials():
+    candidate = candidate_for_name("Fortvita Biologics (USA)Inc.")
+    assert candidate.name == "Innovent Biologics"
+    assert candidate.owns("Innovent Biologics (Suzhou) Co. Ltd.")
+    assert candidate.owns("Fortvita Biologics (USA)Inc.")
+    assert not candidate.owns("Small Bio Inc")
+
+
+@pytest.mark.asyncio
+async def test_fetch_trials_drops_trials_the_company_only_collaborates_on():
+    def handler(request: httpx.Request) -> httpx.Response:
+        own = _sponsor_search_response("Small Bio Inc")["studies"][0]
+        other = _sponsor_search_response("Big Partner Inc")["studies"][0]
+        other = {
+            "protocolSection": {
+                **other["protocolSection"],
+                "identificationModule": {"nctId": "NCT99999999", "briefTitle": "Partner trial"},
+            }
+        }
+        return httpx.Response(200, json={"studies": [own, other]})
+
+    http_client = httpx.AsyncClient(
+        base_url="https://clinicaltrials.gov/api/v2", transport=httpx.MockTransport(handler)
+    )
+    trials = await fetch_sponsor_trials("Small Bio Inc", http_client=http_client)
+    assert [t["nct_id"] for t in trials] == ["NCT12345678"]
+
+
+@pytest.mark.asyncio
+async def test_large_company_trials_are_capped_late_stage_first():
+    def study(nct: str, phase: str, lead: str) -> dict:
+        return {
+            "protocolSection": {
+                "identificationModule": {"nctId": nct, "briefTitle": nct},
+                "statusModule": {"overallStatus": "RECRUITING"},
+                "designModule": {"phases": [phase]},
+                "sponsorCollaboratorsModule": {"leadSponsor": {"name": lead}},
+            }
+        }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        term = request.url.params["query.spons"]
+        if term == "janssen":
+            return httpx.Response(
+                200,
+                json={
+                    "studies": [
+                        study("NCT00000001", "PHASE1", "Janssen Research & Development, LLC"),
+                        study("NCT00000002", "PHASE3", "Janssen Pharmaceutica N.V., Belgium"),
+                    ]
+                },
+            )
+        return httpx.Response(
+            200, json={"studies": [study("NCT00000003", "PHASE2", "Johnson & Johnson")]}
+        )
+
+    http_client = httpx.AsyncClient(
+        base_url="https://clinicaltrials.gov/api/v2", transport=httpx.MockTransport(handler)
+    )
+    trials = await fetch_sponsor_trials("Janssen", http_client=http_client, max_trials=2)
+    assert [t["nct_id"] for t in trials] == ["NCT00000002", "NCT00000003"]
+
+
+def test_assemble_profile_for_a_large_company_uses_parent_identity():
+    from app.services.discovery import DraftedNarrative
+
+    narrative = DraftedNarrative(**{**VALID_NARRATIVE, "maturity": "established"})
+    trials = [{"nct_id": "NCT12345678", "status": "RECRUITING", "phases": ["PHASE3"]}]
+    parent = resolve_parent("Janssen")
+    profile = assemble_profile("Johnson & Johnson", trials, narrative, parent=parent)
+    assert profile["id"] == "johnson-and-johnson"
+    assert profile["ticker"] == "JNJ"
+    assert "not its full pipeline" in profile["status"]
+
+
+@pytest.mark.asyncio
+async def test_run_discovery_pass_with_explicit_sponsor(tmp_path, monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_sponsor_search_response("XYone Therapeutics, Inc"))
+
+    class PatchedAsyncClient(httpx.AsyncClient):
+        def __init__(self, *args, **kwargs):
+            kwargs["transport"] = httpx.MockTransport(handler)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr("app.services.discovery.httpx.AsyncClient", PatchedAsyncClient)
+    store = CompanyStore(db_path=str(tmp_path / "c.sqlite3"))
+    added = await run_discovery_pass(
+        store=store, provider=FakeLLMProvider([VALID_NARRATIVE]), sponsor="XYone Therapeutics"
+    )
+    assert added[0]["name"] == "XYone Therapeutics, Inc"
+    # Already tracked now -> a second request adds nothing.
+    again = await run_discovery_pass(
+        store=store, provider=FakeLLMProvider([]), sponsor="XYone Therapeutics, Inc"
+    )
+    assert again == []

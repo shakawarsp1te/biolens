@@ -1,7 +1,9 @@
 """
 PLAN.md's "constantly update and create new company profiles" capability:
-finds real, recently-active small/emerging biotech sponsors on
-ClinicalTrials.gov that BioLens doesn't track yet, pulls their real trial
+finds real, recently-active biotech and pharma sponsors on
+ClinicalTrials.gov that BioLens doesn't track yet -- small companies and,
+since Sep 2026, large ones too (subsidiaries folded into their publicly
+traded parent, see PARENT_COMPANIES) -- pulls their real trial
 data, and has an LLM draft a profile strictly grounded in those facts --
 never invented, never from the model's own general knowledge. Every
 drafted profile is written with reviewStatus="ai_drafted_unreviewed" (see
@@ -23,7 +25,9 @@ from __future__ import annotations
 
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from itertools import zip_longest
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
@@ -34,62 +38,123 @@ from app.services.company_store import CompanyStore, get_company_store
 from app.services.frontier_score import FrontierScoreComponents, calculate_frontier_score
 from app.services.llm import LLMProvider, get_llm_provider
 
-# Large, already-well-known biopharma companies auto-discovery specifically
-# does NOT try to surface -- the whole point is exposing smaller/emerging
-# companies a person wouldn't already know about. Not exhaustive; a large
-# sponsor slipping through just means one review cycle catches it (every
-# auto-discovered profile is reviewStatus="ai_drafted_unreviewed" until a
-# human confirms it either way).
-LARGE_PHARMA_DENYLIST = {
-    "pfizer",
-    "merck",
-    "merck sharp & dohme",
-    "merck sharp & dohme llc",
-    "novartis",
-    "novartis pharmaceuticals",
-    "roche",
-    "hoffmann-la roche",
-    "genentech",
-    "abbvie",
-    "amgen",
-    "eli lilly",
-    "eli lilly and company",
-    "bristol-myers squibb",
-    "bristol myers squibb",
-    "johnson & johnson",
-    "janssen",
-    "gsk",
-    "glaxosmithkline",
-    "sanofi",
-    "astrazeneca",
-    "gilead sciences",
-    "gilead",
-    "regeneron pharmaceuticals",
-    "regeneron",
-    "biogen",
-    "vertex pharmaceuticals",
-    "boehringer ingelheim",
-    "takeda",
-    "bayer",
-    "novo nordisk",
-    "daiichi sankyo",
-    "astellas pharma",
-    "astellas pharma global development",
-    "beigene",
-    "beone medicines",
-    "moderna",
-    "eisai",
-    "otsuka",
+
+# Large companies run trials under many subsidiary names ("Janssen Research
+# & Development, LLC", "Genentech, Inc.", "Fortvita Biologics (USA) Inc.").
+# Each is mapped to its parent -- the entity that actually has a stock --
+# so discovery builds one "Johnson & Johnson (JNJ)" profile instead of a
+# ticker-less "Janssen Pharmaceutica N.V., Belgium" one (caught live on the
+# Sep 25, 2026 run). Aliases match as whole words at the start of a sponsor
+# name. Tickers are Yahoo Finance symbols (market_data.py); None where the
+# parent isn't publicly traded. Not exhaustive: an unmapped subsidiary
+# just surfaces as its own pending-review profile, which review catches.
+@dataclass(frozen=True)
+class ParentCompany:
+    id: str
+    name: str
+    ticker: str | None
+    aliases: tuple[str, ...]
+
+
+PARENT_COMPANIES: tuple[ParentCompany, ...] = (
+    ParentCompany("pfizer", "Pfizer", "PFE", ("pfizer", "seagen")),
+    ParentCompany("merck-and-co", "Merck & Co.", "MRK", ("merck sharp & dohme", "merck & co")),
+    ParentCompany("merck-kgaa", "Merck KGaA", "MKKGY", ("merck kgaa", "emd serono")),
+    ParentCompany("novartis", "Novartis", "NVS", ("novartis",)),
+    ParentCompany("roche", "Roche", "RHHBY", ("roche", "hoffmann-la roche", "genentech")),
+    ParentCompany("abbvie", "AbbVie", "ABBV", ("abbvie",)),
+    ParentCompany("amgen", "Amgen", "AMGN", ("amgen",)),
+    ParentCompany("eli-lilly", "Eli Lilly", "LLY", ("eli lilly", "loxo oncology")),
+    ParentCompany(
+        "bristol-myers-squibb",
+        "Bristol Myers Squibb",
+        "BMY",
+        ("bristol-myers squibb", "bristol myers squibb", "celgene", "juno therapeutics"),
+    ),
+    ParentCompany(
+        "johnson-and-johnson", "Johnson & Johnson", "JNJ", ("johnson & johnson", "janssen")
+    ),
+    ParentCompany("gsk", "GSK", "GSK", ("gsk", "glaxosmithkline", "tesaro")),
+    ParentCompany("sanofi", "Sanofi", "SNY", ("sanofi", "genzyme")),
+    ParentCompany("astrazeneca", "AstraZeneca", "AZN", ("astrazeneca", "medimmune", "alexion")),
+    ParentCompany("gilead-sciences", "Gilead Sciences", "GILD", ("gilead", "kite pharma")),
+    ParentCompany("regeneron", "Regeneron Pharmaceuticals", "REGN", ("regeneron",)),
+    ParentCompany("biogen", "Biogen", "BIIB", ("biogen",)),
+    ParentCompany("vertex", "Vertex Pharmaceuticals", "VRTX", ("vertex pharmaceuticals",)),
+    ParentCompany("boehringer-ingelheim", "Boehringer Ingelheim", None, ("boehringer ingelheim",)),
+    ParentCompany("takeda", "Takeda", "TAK", ("takeda",)),
+    ParentCompany("bayer", "Bayer", "BAYRY", ("bayer",)),
+    ParentCompany("novo-nordisk", "Novo Nordisk", "NVO", ("novo nordisk",)),
+    ParentCompany("daiichi-sankyo", "Daiichi Sankyo", "DSNKY", ("daiichi sankyo",)),
+    ParentCompany("astellas", "Astellas Pharma", "ALPMY", ("astellas",)),
+    ParentCompany("beone-medicines", "BeOne Medicines", "ONC", ("beone medicines", "beigene")),
+    ParentCompany("moderna", "Moderna", "MRNA", ("moderna",)),
+    ParentCompany("eisai", "Eisai", "ESALY", ("eisai",)),
+    ParentCompany("otsuka", "Otsuka", "OTSKY", ("otsuka",)),
+    ParentCompany("innovent-biologics", "Innovent Biologics", "1801.HK", ("innovent", "fortvita")),
+)
+
+
+def resolve_parent(sponsor_name: str) -> ParentCompany | None:
+    """The parent company a CT.gov sponsor name belongs to, if it's a known
+    large company or one of its subsidiaries."""
+    lowered = sponsor_name.strip().lower()
+    for parent in PARENT_COMPANIES:
+        if any(re.match(rf"{re.escape(alias)}\b", lowered) for alias in parent.aliases):
+            return parent
+    return None
+
+
+# Corporate suffixes stripped before comparing an independent company's
+# name against a trial's lead sponsor ("XYone Therapeutics" vs
+# "XYone Therapeutics, Inc").
+_CORPORATE_SUFFIXES = {
+    "inc",
+    "llc",
+    "ltd",
+    "limited",
+    "co",
+    "corp",
+    "corporation",
+    "plc",
+    "ag",
+    "sa",
 }
 
 
-def is_large_pharma(sponsor_name: str) -> bool:
-    """True when the sponsor name starts with a denylisted name as whole
-    words -- CT.gov lists subsidiaries under longer names ("Janssen
-    Research & Development, LLC", "Pfizer Inc."), which an exact match
-    let through (caught live: two J&J entities drafted as "new companies")."""
-    lowered = sponsor_name.strip().lower()
-    return any(re.match(rf"{re.escape(name)}\b", lowered) for name in LARGE_PHARMA_DENYLIST)
+def normalize_sponsor(name: str) -> str:
+    words = re.sub(r"[^a-z0-9& ]+", " ", name.lower()).split()
+    while words and words[-1] in _CORPORATE_SUFFIXES:
+        words.pop()
+    return " ".join(words)
+
+
+@dataclass(frozen=True)
+class DiscoveryCandidate:
+    """One company to try drafting: an independent sponsor, or a parent
+    company whose trials are found through all of its subsidiary names."""
+
+    name: str
+    parent: ParentCompany | None = None
+
+    @property
+    def search_terms(self) -> tuple[str, ...]:
+        return self.parent.aliases if self.parent else (self.name,)
+
+    def owns(self, lead_sponsor: str) -> bool:
+        if self.parent is not None:
+            return resolve_parent(lead_sponsor) == self.parent
+        # Lead sponsor only: CT.gov's sponsor search also matches
+        # collaborators, which is how Innovent-led trials ended up
+        # attributed to Fortvita on the Sep 25, 2026 run.
+        return normalize_sponsor(lead_sponsor).startswith(normalize_sponsor(self.name))
+
+
+def candidate_for_name(name: str) -> DiscoveryCandidate:
+    parent = resolve_parent(name)
+    if parent is not None:
+        return DiscoveryCandidate(name=parent.name, parent=parent)
+    return DiscoveryCandidate(name=name.strip())
 
 
 _ACTIVE_STATUSES = {"RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROLLING_BY_INVITATION"}
@@ -114,14 +179,15 @@ async def find_candidate_sponsors(
     http_client: httpx.AsyncClient,
     max_candidates: int = 20,
     condition: str = "cancer",
-) -> list[str]:
+) -> list[DiscoveryCandidate]:
     """Real, recently-updated, industry-sponsored trials on
-    ClinicalTrials.gov, filtered to sponsors BioLens doesn't already track
-    and excluding well-known large pharma (LARGE_PHARMA_DENYLIST) --
-    surfaces smaller/emerging companies specifically. `LeadSponsorClass=
-    INDUSTRY` is what does the real work here: it's CT.gov's own
-    classification, not a keyword guess, so it reliably excludes
-    universities/hospitals/government sponsors."""
+    ClinicalTrials.gov, grouped into companies BioLens doesn't track yet --
+    subsidiaries folded into their parent (PARENT_COMPANIES). Large and
+    independent companies are interleaved so the big names that dominate
+    CT.gov's update feed don't crowd out smaller ones.
+    `LeadSponsorClass=INDUSTRY` is CT.gov's own classification, not a
+    keyword guess, so it reliably excludes universities/hospitals/
+    government sponsors."""
     response = await http_client.get(
         "/studies",
         params={
@@ -135,8 +201,9 @@ async def find_candidate_sponsors(
     response.raise_for_status()
     data = response.json()
 
-    candidates: list[str] = []
-    seen_lower: set[str] = set()
+    large: list[DiscoveryCandidate] = []
+    independent: list[DiscoveryCandidate] = []
+    seen: set[str] = set()
     for study in data.get("studies", []):
         sponsor = (
             study.get("protocolSection", {})
@@ -146,56 +213,89 @@ async def find_candidate_sponsors(
         )
         if not sponsor:
             continue
-        lowered = sponsor.strip().lower()
-        if lowered in seen_lower or lowered in known_names or is_large_pharma(lowered):
+        candidate = candidate_for_name(sponsor)
+        key = candidate.name.lower()
+        if key in seen or key in known_names or sponsor.strip().lower() in known_names:
             continue
-        seen_lower.add(lowered)
-        candidates.append(sponsor.strip())
-        if len(candidates) >= max_candidates:
-            break
-    return candidates
+        seen.add(key)
+        (large if candidate.parent else independent).append(candidate)
+
+    interleaved = [c for pair in zip_longest(independent, large) for c in pair if c is not None]
+    return interleaved[:max_candidates]
+
+
+# Phase rank for choosing which of a large company's many trials represent
+# it: late-stage first (what actually moves a large company), then earlier.
+_PHASE_RANK = {"PHASE3": 4, "PHASE2": 3, "PHASE1": 2, "PHASE4": 1, "EARLY_PHASE1": 1}
+
+
+def _trial_priority(trial: dict) -> tuple[int, int]:
+    phase_rank = max((_PHASE_RANK.get(p, 0) for p in trial["phases"]), default=0)
+    return (phase_rank, 1 if trial["status"] in _ACTIVE_STATUSES else 0)
 
 
 async def fetch_sponsor_trials(
-    sponsor_name: str, *, http_client: httpx.AsyncClient, page_size: int = 15
+    candidate: DiscoveryCandidate | str,
+    *,
+    http_client: httpx.AsyncClient,
+    page_size: int = 15,
+    max_trials: int = 15,
 ) -> list[dict]:
-    """Real trial facts for one sponsor -- everything the LLM drafting
-    step is allowed to use, and nothing else."""
-    response = await http_client.get(
-        "/studies",
-        params={
-            "query.spons": sponsor_name,
-            "pageSize": page_size,
-            "fields": "NCTId,BriefTitle,OverallStatus,Phase,Condition,InterventionName",
-        },
-    )
-    response.raise_for_status()
-    data = response.json()
+    """Real trial facts for one company -- everything the LLM drafting
+    step is allowed to use, and nothing else. Only trials the company (or,
+    for a large company, one of its subsidiaries) actually leads. A large
+    company runs hundreds; it's represented by its `max_trials` most
+    advanced, most recently updated ones, and its profile says so."""
+    if isinstance(candidate, str):
+        candidate = candidate_for_name(candidate)
+    page_size = 50 if candidate.parent else page_size
 
-    trials = []
-    for study in data.get("studies", []):
-        protocol = study.get("protocolSection", {})
-        ident = protocol.get("identificationModule", {})
-        status = protocol.get("statusModule", {})
-        design = protocol.get("designModule", {})
-        conditions = protocol.get("conditionsModule", {})
-        arms = protocol.get("armsInterventionsModule", {})
-        nct_id = ident.get("nctId")
-        if not nct_id:
-            continue
-        trials.append(
-            {
-                "nct_id": nct_id,
-                "title": ident.get("briefTitle"),
-                "status": status.get("overallStatus"),
-                "phases": design.get("phases") or [],
-                "conditions": conditions.get("conditions") or [],
-                "interventions": [
-                    i.get("name") for i in arms.get("interventions", []) if i.get("name")
-                ],
-            }
+    trials: list[dict] = []
+    seen_ids: set[str] = set()
+    for term in candidate.search_terms:
+        response = await http_client.get(
+            "/studies",
+            params={
+                "query.spons": term,
+                "pageSize": page_size,
+                "sort": "LastUpdatePostDate:desc",
+                "fields": (
+                    "NCTId,BriefTitle,OverallStatus,Phase,Condition,InterventionName,"
+                    "LeadSponsorName"
+                ),
+            },
         )
-    return trials
+        response.raise_for_status()
+        for study in response.json().get("studies", []):
+            protocol = study.get("protocolSection", {})
+            ident = protocol.get("identificationModule", {})
+            status = protocol.get("statusModule", {})
+            design = protocol.get("designModule", {})
+            conditions = protocol.get("conditionsModule", {})
+            arms = protocol.get("armsInterventionsModule", {})
+            lead = protocol.get("sponsorCollaboratorsModule", {}).get("leadSponsor", {}).get("name")
+            nct_id = ident.get("nctId")
+            if not nct_id or nct_id in seen_ids or not lead or not candidate.owns(lead):
+                continue
+            seen_ids.add(nct_id)
+            trials.append(
+                {
+                    "nct_id": nct_id,
+                    "title": ident.get("briefTitle"),
+                    "status": status.get("overallStatus"),
+                    "phases": design.get("phases") or [],
+                    "conditions": conditions.get("conditions") or [],
+                    "interventions": [
+                        i.get("name") for i in arms.get("interventions", []) if i.get("name")
+                    ],
+                    "lead_sponsor": lead,
+                }
+            )
+
+    if candidate.parent:
+        # Stable sort keeps CT.gov's recency order within each priority.
+        trials.sort(key=_trial_priority, reverse=True)
+    return trials[:max_trials]
 
 
 def estimate_frontier_components(trials: list[dict]) -> FrontierScoreComponents:
@@ -299,7 +399,20 @@ _DISCOVERY_SYSTEM_PROMPT = (
 )
 
 
-def _build_prompt(sponsor_name: str, trials: list[dict]) -> str:
+def _large_company_note(parent: ParentCompany | None, trial_count: int) -> str:
+    if parent is None:
+        return ""
+    return (
+        f"NOTE: {parent.name} is a large, established company. The {trial_count} trials below "
+        "are only a selection -- its most advanced, most recently updated lead-sponsored "
+        "trials -- not its full pipeline. Say so in the profile, describe only these "
+        "programs, and set `maturity` to 'established'.\n\n"
+    )
+
+
+def _build_prompt(
+    sponsor_name: str, trials: list[dict], parent: ParentCompany | None = None
+) -> str:
     trial_lines = "\n".join(
         f"- {t['nct_id']} | {t['title']} | status={t['status']} | phases={t['phases']} | "
         f"conditions={', '.join(t['conditions'])} | interventions={', '.join(t['interventions'])}"
@@ -308,15 +421,21 @@ def _build_prompt(sponsor_name: str, trials: list[dict]) -> str:
     known_ids = ", ".join(t["nct_id"] for t in trials)
     return (
         f"COMPANY: {sponsor_name}\n\n"
+        f"{_large_company_note(parent, len(trials))}"
         f"REAL TRIALS (from ClinicalTrials.gov):\n{trial_lines}\n\n"
         f"KNOWN TRIAL IDS (cite only from this list): {known_ids}\n\n"
         "Draft a BioLens company profile from this data alone."
     )
 
 
-def _build_repair_prompt(sponsor_name: str, trials: list[dict], previous_error: str) -> str:
+def _build_repair_prompt(
+    sponsor_name: str,
+    trials: list[dict],
+    previous_error: str,
+    parent: ParentCompany | None = None,
+) -> str:
     return (
-        f"{_build_prompt(sponsor_name, trials)}\n\n"
+        f"{_build_prompt(sponsor_name, trials, parent)}\n\n"
         f"Your previous attempt failed validation: {previous_error}\n\n"
         "Fix it and try again."
     )
@@ -370,15 +489,16 @@ async def draft_narrative(
     *,
     provider: LLMProvider,
     max_repair_attempts: int = 2,
+    parent: ParentCompany | None = None,
 ) -> DraftedNarrative:
     known_trial_ids = {t["nct_id"] for t in trials}
     last_error: str | None = None
 
     for _attempt in range(max_repair_attempts + 1):
         prompt = (
-            _build_prompt(sponsor_name, trials)
+            _build_prompt(sponsor_name, trials, parent)
             if last_error is None
-            else _build_repair_prompt(sponsor_name, trials, last_error)
+            else _build_repair_prompt(sponsor_name, trials, last_error, parent)
         )
         try:
             candidate = await provider.complete_structured(
@@ -398,13 +518,23 @@ async def draft_narrative(
     )
 
 
-def assemble_profile(sponsor_name: str, trials: list[dict], narrative: DraftedNarrative) -> dict:
+def assemble_profile(
+    sponsor_name: str,
+    trials: list[dict],
+    narrative: DraftedNarrative,
+    parent: ParentCompany | None = None,
+) -> dict:
     """Builds the full CompanyProfileModel-shaped dict from a drafted
     narrative plus the real trial facts it was grounded in -- separated
     out from run_discovery_pass so it's independently testable without
     mocking CT.gov or an LLM."""
     now = datetime.now(timezone.utc).isoformat()
-    company_id = slugify(sponsor_name)
+    company_id = parent.id if parent else slugify(sponsor_name)
+    status = "Auto-discovered from ClinicalTrials.gov — pending review"
+    if parent:
+        status += (
+            f" · covers {len(trials)} of its most advanced recent trials, not its full pipeline"
+        )
 
     pipeline = [
         PipelineAssetModel(
@@ -422,9 +552,9 @@ def assemble_profile(sponsor_name: str, trials: list[dict], narrative: DraftedNa
 
     profile = CompanyProfileModel(
         id=company_id,
-        name=sponsor_name,
-        ticker=None,
-        status="Auto-discovered from ClinicalTrials.gov — pending review",
+        name=parent.name if parent else sponsor_name,
+        ticker=parent.ticker if parent else None,
+        status=status,
         primaryFocus=narrative.primaryFocus,
         technology=narrative.technology,
         biolensSummary=narrative.biolensSummary,
@@ -457,13 +587,16 @@ async def run_discovery_pass(
     provider: LLMProvider | None = None,
     max_new: int = 3,
     condition: str = "cancer",
+    sponsor: str | None = None,
 ) -> list[dict]:
     """One discovery pass: finds up to `max_new` real, currently-untracked
-    small/emerging oncology companies from ClinicalTrials.gov, drafts a
-    profile for each, and stores it as reviewStatus="ai_drafted_unreviewed".
-    Returns what was added; a candidate that has no real trials on lookup,
-    or whose narrative never passes validation even after repair attempts,
-    is skipped rather than force-added."""
+    oncology companies from ClinicalTrials.gov -- large and small, see
+    find_candidate_sponsors -- drafts a profile for each, and stores it as
+    reviewStatus="ai_drafted_unreviewed". With `sponsor`, drafts that one
+    company instead (a subsidiary name resolves to its parent). Returns what
+    was added; a candidate with no lead-sponsored trials, or whose narrative
+    never passes validation even after repair attempts, is skipped rather
+    than force-added."""
     store = store or get_company_store()
     provider = provider or get_llm_provider()
     known_names = await store.known_names()
@@ -472,24 +605,34 @@ async def run_discovery_pass(
     async with httpx.AsyncClient(
         base_url=get_settings().clinicaltrials_api_base, timeout=15.0
     ) as http_client:
-        candidates = await find_candidate_sponsors(
-            known_names=known_names,
-            http_client=http_client,
-            max_candidates=max(max_new * 4, 10),
-            condition=condition,
-        )
-        for sponsor_name in candidates:
+        if sponsor is not None:
+            candidate = candidate_for_name(sponsor)
+            candidates = [] if candidate.name.lower() in known_names else [candidate]
+            max_new = 1
+        else:
+            candidates = await find_candidate_sponsors(
+                known_names=known_names,
+                http_client=http_client,
+                max_candidates=max(max_new * 4, 10),
+                condition=condition,
+            )
+        for candidate in candidates:
             if len(added) >= max_new:
                 break
-            trials = await fetch_sponsor_trials(sponsor_name, http_client=http_client)
+            trials = await fetch_sponsor_trials(candidate, http_client=http_client)
             if not trials:
                 continue
+            # A user-typed independent name ("XYone Therapeutics") takes the
+            # sponsor's own spelling from its trials ("XYone Therapeutics, Inc").
+            name = candidate.name if candidate.parent else trials[0]["lead_sponsor"]
             try:
-                narrative = await draft_narrative(sponsor_name, trials, provider=provider)
+                narrative = await draft_narrative(
+                    name, trials, provider=provider, parent=candidate.parent
+                )
             except DiscoveryDraftError:
                 continue
 
-            profile = assemble_profile(sponsor_name, trials, narrative)
+            profile = assemble_profile(name, trials, narrative, parent=candidate.parent)
             await store.upsert_company(profile)
             added.append({"id": profile["id"], "name": profile["name"], "trialCount": len(trials)})
 

@@ -5,6 +5,10 @@ for each (reviewStatus="ai_drafted_unreviewed").
 
 Usage (from api/):
     python -m scripts.run_discovery [max_new]
+    python -m scripts.run_discovery --sponsor "Pfizer"   # one specific company
+
+A subsidiary name resolves to its publicly traded parent ("Janssen" ->
+Johnson & Johnson, "Genentech" -> Roche); see PARENT_COMPANIES.
 
 This is what a cron job or scheduled task calls for unattended, recurring
 runs -- POST /companies/discover (api/app/routers/companies.py) is the
@@ -20,12 +24,20 @@ from app.services.discovery import run_discovery_pass
 
 
 async def main() -> None:
-    max_new = int(sys.argv[1]) if len(sys.argv) > 1 else 3
-    print(f"Running discovery pass (max_new={max_new})...")
-    added = await run_discovery_pass(max_new=max_new)
-    if not added:
-        print("No new companies found this pass.")
-        return
+    if len(sys.argv) > 2 and sys.argv[1] == "--sponsor":
+        sponsor = sys.argv[2]
+        print(f"Drafting a profile for {sponsor!r}...")
+        added = await run_discovery_pass(sponsor=sponsor)
+        if not added:
+            print("Nothing added: already tracked, no lead-sponsored trials, or drafting failed.")
+            return
+    else:
+        max_new = int(sys.argv[1]) if len(sys.argv) > 1 else 3
+        print(f"Running discovery pass (max_new={max_new})...")
+        added = await run_discovery_pass(max_new=max_new)
+        if not added:
+            print("No new companies found this pass.")
+            return
     for company in added:
         print(f"added: {company['name']} ({company['id']}) — {company['trialCount']} real trial(s)")
 
