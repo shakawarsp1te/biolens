@@ -9,7 +9,7 @@
  * string is all a GET query string needs.
  */
 
-import { CatalystEvent, CompanyRecord, SignalEvent } from "../types/domain";
+import { CatalystEvent, CompanyRecord, SignalEvent, TrackRecord } from "../types/domain";
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -399,4 +399,10 @@ export function getCompanySignals(id: string, limit = 20): Promise<SignalEvent[]
 
 export function getRecentSignals(limit = 20): Promise<SignalEvent[]> {
   return apiGet<SignalEvent[]>("/signals/recent", { limit });
+}
+
+/** Every paper impact call BioLens has made, scored against the stock's
+ * actual move vs. the XBI biotech benchmark — misses included. */
+export function getTrackRecord(): Promise<TrackRecord> {
+  return apiGet<TrackRecord>("/signals/track-record");
 }

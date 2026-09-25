@@ -72,7 +72,9 @@ export default function CompanyProfileScreen() {
         company.isMockData ? " · Illustrative data" : ""
       }${company.reviewStatus === "ai_drafted_unreviewed" ? " · AI-drafted, pending review" : ""}`}
     >
-      {company.ticker ? <StockQuoteCard key={company.ticker} ticker={company.ticker} /> : null}
+      {company.ticker ? (
+        <StockQuoteCard key={`quote-${company.ticker}`} ticker={company.ticker} />
+      ) : null}
 
       <View style={styles.identityRow}>
         <Avatar name={company.name} size={44} />
@@ -113,11 +115,13 @@ export default function CompanyProfileScreen() {
         ))}
       </ListContainer>
 
-      <CatalystCalendarCard key={company.id} companyId={company.id} />
+      <CatalystCalendarCard key={`catalysts-${company.id}`} companyId={company.id} />
 
-      <SignalFeedCard key={company.id} companyId={company.id} />
+      <SignalFeedCard key={`signals-${company.id}`} companyId={company.id} />
 
-      {company.ticker ? <FinancialHealthCard key={company.ticker} ticker={company.ticker} /> : null}
+      {company.ticker ? (
+        <FinancialHealthCard key={`health-${company.ticker}`} ticker={company.ticker} />
+      ) : null}
 
       <Text style={styles.heading}>Thesis map</Text>
       <View style={styles.thesisMapCard}>

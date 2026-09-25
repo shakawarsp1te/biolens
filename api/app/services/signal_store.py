@@ -152,6 +152,45 @@ class SignalStore:
             rows = await cursor.fetchall()
         return [json.loads(row["data"]) for row in rows]
 
+    async def list_assessed_signals(self) -> list[dict[str, Any]]:
+        """Every signal carrying a paper impact call (paper_impact.py),
+        oldest first -- the population the track record is computed over."""
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT data FROM signals WHERE json_extract(data, '$.impact') IS NOT NULL "
+                "ORDER BY detected_at ASC"
+            )
+            rows = await cursor.fetchall()
+        return [json.loads(row["data"]) for row in rows]
+
+    async def list_unassessed_paper_signals(self, *, limit: int = 25) -> list[dict[str, Any]]:
+        """New-paper signals with no impact call yet -- older ones found before
+        paper_impact.py existed, or ones whose call failed last pass."""
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT data FROM signals "
+                "WHERE json_extract(data, '$.signalType') = 'new_paper' "
+                "AND json_extract(data, '$.impact') IS NULL "
+                "ORDER BY detected_at DESC LIMIT ?",
+                (limit,),
+            )
+            rows = await cursor.fetchall()
+        return [json.loads(row["data"]) for row in rows]
+
+    async def update_signal(self, signal: dict[str, Any]) -> None:
+        """Replaces a stored signal's data (used to attach an impact call or
+        its later outcome); id, company and detection time never change."""
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                "UPDATE signals SET data = ? WHERE id = ?", (json.dumps(signal), signal["id"])
+            )
+            await db.commit()
+
 
 _default_store: SignalStore | None = None
 

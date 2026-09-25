@@ -33,9 +33,11 @@ from typing import Any
 from app.services.company_store import get_company_store
 from app.services.discovery import run_discovery_pass
 from app.services.filing_monitor import scan_company_for_new_filings
+from app.services.paper_impact import assess_paper_signals
 from app.services.paper_monitor import scan_company_for_new_papers
 from app.services.pubmed import PubMedClient
 from app.services.sec_edgar import SecEdgarClient
+from app.services.signal_outcomes import update_outcomes
 from app.services.signal_store import SignalStore, get_signal_store
 
 logger = logging.getLogger("biolens.scan")
@@ -86,14 +88,42 @@ async def run_scan_pass(
                 logger.exception("filing scan failed for company %s", company_id)
                 filing_signals = []
 
-            all_signals = paper_signals + filing_signals
+            all_signals = [s.model_dump() for s in paper_signals + filing_signals]
+            if paper_signals:
+                all_signals = await assess_paper_signals(
+                    company, all_signals, pubmed_client=pubmed_client
+                )
             if all_signals:
-                await store.add_signals([s.model_dump() for s in all_signals])
+                await store.add_signals(all_signals)
             await store.mark_scanned(company_id, scanned_at=_utc_now_iso())
 
             new_paper_count += len(paper_signals)
             new_filing_count += len(filing_signals)
             companies_scanned += 1
+
+        # Papers found before impact calls existed, or whose call failed
+        # last pass, get another try here.
+        companies_by_id = {c.get("id"): c for c in companies}
+        try:
+            backlog = await store.list_unassessed_paper_signals()
+            for company_id in {s["companyId"] for s in backlog}:
+                company = companies_by_id.get(company_id)
+                if company is None:
+                    continue
+                batch = [s for s in backlog if s["companyId"] == company_id]
+                for signal in await assess_paper_signals(
+                    company, batch, pubmed_client=pubmed_client
+                ):
+                    if signal.get("impact") is not None:
+                        await store.update_signal(signal)
+        except Exception:
+            logger.exception("impact backfill failed during scan")
+
+    outcomes_updated = 0
+    try:
+        outcomes_updated = await update_outcomes(store=store, companies=companies)
+    except Exception:
+        logger.exception("outcome update failed during scan")
 
     new_companies_found = 0
     if run_discovery:
@@ -108,6 +138,7 @@ async def run_scan_pass(
         "newPapers": new_paper_count,
         "newFilings": new_filing_count,
         "newCompaniesDiscovered": new_companies_found,
+        "outcomesUpdated": outcomes_updated,
         "scannedAt": _utc_now_iso(),
     }
     logger.info("scan pass complete: %s", summary)

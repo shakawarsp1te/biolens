@@ -8,10 +8,10 @@ the resulting PMIDs against what BioLens has already seen for that company,
 and reports only the new ones.
 
 Every signal here is a plain, sourced fact -- a real paper's real title,
-journal, and PubMed link -- never a summary of what it means or a guess at
-how it might move a stock. Interpreting a paper's *content* is what Ask
-BioLens and the interpretation pipeline already do, on demand, when a human
-asks; this module's only job is noticing that the paper exists.
+journal, and PubMed link. This module's only job is noticing that the paper
+exists; BioLens's read on what it means for the company is a separate step
+(paper_impact.py, run by scan.py), so the fact and the call on it never
+blur together.
 
 A company's first-ever scan has no baseline to diff against, so every
 paper PubMed has ever indexed for its pipeline would otherwise be reported

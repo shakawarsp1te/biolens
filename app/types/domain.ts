@@ -147,12 +147,63 @@ export interface CatalystEvent {
   sourceUrl: string;
 }
 
+export type ImpactDirection =
+  | "likely_positive"
+  | "likely_negative"
+  | "mixed"
+  | "unlikely_to_matter";
+
+/** BioLens's read on one new paper (api/app/services/paper_impact.py) —
+ * whether its findings are likely good or bad news for the company, never
+ * a price prediction or an instruction. Same for every reader. */
+export interface PaperImpact {
+  direction: ImpactDirection;
+  confidence: ConfidenceLevel;
+  headline: string;
+  reasoning: string;
+  keyFindings: string[];
+  caveats: string[];
+}
+
+export interface OutcomeHorizon {
+  date: string;
+  stockReturn: number;
+  benchmarkReturn: number;
+  /** stockReturn − benchmarkReturn: the move not explained by the sector. */
+  abnormalReturn: number;
+}
+
+/** What the stock actually did after a call (api/app/services/signal_outcomes.py). */
+export interface SignalOutcome {
+  benchmark: string;
+  baselineDate: string;
+  baselineClose: number;
+  horizons: Partial<Record<"1d" | "5d" | "20d", OutcomeHorizon>>;
+}
+
+export interface TrackRecordHorizon {
+  directionalCallsScored: number;
+  hits: number;
+  hitRate: number | null;
+  avgAbsAbnormalReturnByDirection: Partial<Record<ImpactDirection, number>>;
+  /** How many calls each average above is based on. */
+  scoredCountByDirection: Partial<Record<ImpactDirection, number>>;
+}
+
+/** GET /signals/track-record — every call, misses included. */
+export interface TrackRecord {
+  benchmark: string;
+  totalCalls: number;
+  callsByDirection: Partial<Record<ImpactDirection, number>>;
+  horizons: Record<"1d" | "5d" | "20d", TrackRecordHorizon>;
+  calls: SignalEvent[];
+}
+
 /** GET /companies/{id}/signals and GET /signals/recent
  * (api/app/services/scan.py) — a real, sourced fact BioLens's continuous
  * scan detected as new since the last pass: a new PubMed paper, or a new
- * SEC filing. Deliberately not a prediction, score, or interpretation of
- * what the fact means for a stock — see api/app/services/paper_monitor.py
- * and filing_monitor.py's module docstrings. */
+ * SEC filing. New papers also carry BioLens's impact call and, once enough
+ * trading days pass, how the stock actually moved afterward. */
 export interface SignalEvent {
   id: string;
   companyId: string;
@@ -167,6 +218,8 @@ export interface SignalEvent {
   detectedAt: string;
   source: string;
   sourceUrl: string;
+  impact?: PaperImpact | null;
+  outcome?: SignalOutcome | null;
 }
 
 /** BUILD_BRIEF.txt §18-21: the full company profile screen. */

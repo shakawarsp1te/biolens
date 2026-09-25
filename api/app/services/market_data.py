@@ -142,6 +142,55 @@ class MarketDataClient:
         await self._cache.set(cache_key, history)
         return history
 
+    async def get_daily_closes(
+        self, ticker: str, *, start_epoch: int, end_epoch: int
+    ) -> list[dict[str, Any]] | None:
+        """Daily closes between two epoch-second bounds, as [{date, close}]
+        with `date` the trading day in YYYY-MM-DD (exchange-local), or None
+        on any failure -- same graceful-degradation contract as get_quote.
+        Used to score paper impact calls against what the stock actually
+        did (app/services/signal_outcomes.py)."""
+        cache_key = f"market:daily:{ticker.upper()}:{start_epoch}:{end_epoch}"
+        cached = await self._cache.get(cache_key)
+        if cached is not None and time.time() - cached.fetched_at < _HISTORY_CACHE_TTL_SECONDS:
+            return cached.value["closes"]
+
+        assert self._http_client is not None, "use `async with MarketDataClient() as client:`"
+        try:
+            response = await self._http_client.get(
+                f"/v8/finance/chart/{ticker}",
+                params={"period1": start_epoch, "period2": end_epoch, "interval": "1d"},
+            )
+        except httpx.HTTPError:
+            return None
+        if response.status_code != 200:
+            return None
+
+        closes = _parse_daily_closes(response)
+        if closes is None:
+            return None
+        await self._cache.set(cache_key, {"closes": closes})
+        return closes
+
+
+def _parse_daily_closes(response: httpx.Response) -> list[dict[str, Any]] | None:
+    try:
+        result = response.json()["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        closes = result["indicators"]["quote"][0]["close"]
+        gmt_offset = result["meta"].get("gmtoffset") or 0
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    points = [
+        {
+            "date": datetime.fromtimestamp(t + gmt_offset, tz=timezone.utc).date().isoformat(),
+            "close": round(c, 4),
+        }
+        for t, c in zip(timestamps, closes, strict=False)
+        if c is not None
+    ]
+    return points or None
+
 
 def _parse_history_response(
     response: httpx.Response, *, ticker: str, chart_range: str

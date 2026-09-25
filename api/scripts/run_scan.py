@@ -33,7 +33,8 @@ async def main() -> None:
     print(
         f"[{summary['scannedAt']}] scanned {summary['companiesScanned']} companies: "
         f"{summary['newPapers']} new paper(s), {summary['newFilings']} new filing(s), "
-        f"{summary['newCompaniesDiscovered']} new company(ies) discovered"
+        f"{summary['newCompaniesDiscovered']} new company(ies) discovered, "
+        f"{summary['outcomesUpdated']} call outcome(s) updated"
     )
 
 

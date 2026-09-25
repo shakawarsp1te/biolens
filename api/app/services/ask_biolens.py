@@ -36,6 +36,11 @@ INSUFFICIENT_EVIDENCE_MESSAGE = (
     "BioLens does not have enough verified information to answer this reliably."
 )
 
+PERSONAL_ADVICE_MESSAGE = (
+    "BioLens can explain what the research means for a company, but it can't advise on your "
+    "own investments or portfolio. For that, talk to a licensed financial adviser."
+)
+
 ASK_BIOLENS_SYSTEM_PROMPT = (
     "You are Ask BioLens. You answer a question using ONLY the FACTS and CALCULATED values "
     "given to you as the current research package — never your own general knowledge, and "
@@ -45,7 +50,11 @@ ASK_BIOLENS_SYSTEM_PROMPT = (
     "of the given source_ids; list exactly which ones you drew on in source_ids_used. Never "
     "cite a source_id that wasn't given to you. Never use investment language: no buy/sell/"
     "price-target framing, no recommendation to invest. Keep answers plain-language and "
-    "concise — this is a mobile app, not a research report."
+    "concise — this is a mobile app, not a research report. If the question asks for advice "
+    "about the asker's OWN situation — whether they personally should buy, sell, hold, or "
+    "size a position, or what to do with their portfolio or holdings — set "
+    "is_personal_advice_request to true and leave answer empty. Questions about what the "
+    "research means for the company are fine to answer."
 )
 
 
@@ -55,6 +64,7 @@ class AskBioLensOutput(BaseModel):
     has_sufficient_evidence: bool
     answer: str
     source_ids_used: list[str] = Field(default_factory=list)
+    is_personal_advice_request: bool = False
 
 
 class AskBioLensResult(BaseModel):
@@ -160,6 +170,12 @@ async def ask_biolens(
             attempts=max_repair_attempts + 1,
             last_error=last_error,
         )
+
+    # Personalized advice is out of bounds regardless of what the model
+    # wrote -- BioLens publishes the same analysis to everyone and never
+    # advises on an individual's holdings (see paper_impact.py's docstring).
+    if output.is_personal_advice_request:
+        return AskBioLensResult(answer=PERSONAL_ADVICE_MESSAGE, has_sufficient_evidence=False)
 
     if not output.has_sufficient_evidence:
         # Never trust the model's own wording for this — always the exact

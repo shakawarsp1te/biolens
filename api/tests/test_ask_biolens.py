@@ -183,3 +183,26 @@ async def test_calculated_alone_without_facts_is_still_a_non_empty_package():
     )
     assert len(provider.calls) == 1
     assert result.has_sufficient_evidence is True
+
+
+@pytest.mark.asyncio
+async def test_personal_advice_request_gets_the_fixed_decline():
+    from app.services.ask_biolens import PERSONAL_ADVICE_MESSAGE
+
+    provider = FakeLLMProvider(
+        [
+            {
+                "has_sufficient_evidence": True,
+                "answer": "You should trim your position.",
+                "is_personal_advice_request": True,
+            }
+        ]
+    )
+    result = await ask_biolens(
+        question="I own 500 shares, should I sell?",
+        facts=["Some fact"],
+        calculated=[],
+        provider=provider,
+    )
+    assert result.answer == PERSONAL_ADVICE_MESSAGE
+    assert result.has_sufficient_evidence is False

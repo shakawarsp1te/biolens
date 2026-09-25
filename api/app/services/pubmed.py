@@ -101,11 +101,18 @@ def parse_abstracts_xml(xml_text: str) -> list[dict[str, Any]]:
     for article in root.findall(".//PubmedArticle"):
         pmid_el = article.find(".//PMID")
         title_el = article.find(".//ArticleTitle")
-        abstract_parts = [t.text for t in article.findall(".//Abstract/AbstractText") if t.text]
+        # itertext(), not .text: PubMed marks up italics/superscripts inline
+        # (<i>KRAS</i>, 10<sup>-3</sup>), and .text stops at the first tag --
+        # it silently truncated abstracts mid-sentence before this.
+        abstract_parts = [
+            text
+            for t in article.findall(".//Abstract/AbstractText")
+            if (text := "".join(t.itertext()).strip())
+        ]
         articles.append(
             {
                 "pmid": pmid_el.text if pmid_el is not None else None,
-                "title": title_el.text if title_el is not None else None,
+                "title": "".join(title_el.itertext()).strip() if title_el is not None else None,
                 "abstract": " ".join(abstract_parts).strip() or None,
             }
         )

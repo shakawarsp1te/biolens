@@ -4,7 +4,7 @@
 
 **The frontier of biotechnology, explained simply — for investors who want to understand emerging biotech before it's obvious, not just be told what to buy.**
 
-BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-language company profiles, trial interpretations, and catalyst calendars — with a hard rule running through every screen: it explains the science and the evidence, and it never tells you what to do about it. No BUY/SELL calls, no price targets, no fabricated confidence scores.
+BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-language company profiles, trial interpretations, catalyst calendars, and a daily read on whether each new paper is likely good or bad news for the company — with a hard rule running through every screen: it explains what the evidence means, and it never tells you what to do about it. No BUY/SELL calls, no price targets, no fabricated confidence scores, and a public track record of how every call held up.
 
 **Live demo:** _add your deployed URL here_ · **API docs:** `/docs` on the deployed backend
 
@@ -16,6 +16,7 @@ BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-la
 - **Auto-discovery pipeline** — finds real, newly-active, industry-sponsored trials on ClinicalTrials.gov, excludes large pharma via a maintained denylist, and drafts a new company profile grounded strictly in that company's own trial data. Every AI-drafted profile is flagged `pending review`, never presented as verified.
 - **Company profiles** — a real pipeline (drug → target → modality → trial → phase), a two-sided thesis map ("what has to go right" / "what could go wrong" — deliberately monochrome, never green/red), and a live stock quote where one exists.
 - **Cash runway** — computed from a company's own SEC filings (XBRL, no LLM involved), the same "BioLens calculated, never invented" discipline as everything else.
+- **Paper impact calls + track record** — a daily scan of PubMed and SEC EDGAR for every tracked company; each new paper gets a plain-language call (likely positive / likely negative / mixed / unlikely to matter, with confidence, reasoning, and caveats), then gets scored against the stock's actual move vs. the XBI biotech index at 1, 5, and 20 trading days. Every call is published, misses included.
 - **Catalyst calendar** — upcoming trial-readout dates, sourced straight from each trial's own ClinicalTrials.gov disclosure, never scraped or guessed.
 - **Ask BioLens** — a RAG assistant scoped strictly to the facts already on the page it's asked from. No open-web fallback; it says so plainly when the evidence on hand isn't enough to answer.
 - **Live search** — hits ClinicalTrials.gov and PubMed directly, no local database required.

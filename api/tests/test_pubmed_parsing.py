@@ -83,3 +83,16 @@ class TestEsearchFixtures:
     def test_drug_name_search_returns_pmids(self):
         data = load_json("pubmed_esearch_drug.json")
         assert len(data["esearchresult"]["idlist"]) > 0
+
+
+def test_inline_markup_does_not_truncate_title_or_abstract():
+    xml = (
+        "<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>1</PMID><Article>"
+        "<ArticleTitle>Targeting <i>KRAS</i> G12C in NSCLC</ArticleTitle>"
+        "<Abstract><AbstractText><i>KRAS</i> mutations are common. Response was 40% "
+        "(p = 10<sup>-3</sup>).</AbstractText></Abstract>"
+        "</Article></MedlineCitation></PubmedArticle></PubmedArticleSet>"
+    )
+    [article] = parse_abstracts_xml(xml)
+    assert article["title"] == "Targeting KRAS G12C in NSCLC"
+    assert article["abstract"] == "KRAS mutations are common. Response was 40% (p = 10-3)."

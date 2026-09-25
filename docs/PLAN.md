@@ -25,7 +25,7 @@ This plan is derived from the BioLens Master Build Brief. It exists to keep impl
 - Proprietary ML ranking/prediction models
 - 10,000-company database
 
-**Guardrail principle (§3):** BioLens is a research and interpretation tool, never a stock picker. No BUY/SELL/price targets. Ever.
+**Guardrail principle (§3):** BioLens is a research and interpretation tool, never a stock picker. No BUY/SELL/price targets. Ever. It *does* say whether new research is likely good or bad news for a company (rule 10), and publishes how those calls held up.
 
 ---
 
@@ -61,6 +61,7 @@ These apply across every feature and every phase — violating them is a higher-
 7. **"Emerging" has explicit inclusion logic** (§12) — not vibes. Frontier Score ranks *research activity*, not investment attractiveness, and must say so explicitly in-product.
 8. **On-demand retrieval + aggressive caching**, not bulk ingestion. Never bulk-download PubMed/FDA/internet.
 9. **Structured JSON out of the LLM, validated with Pydantic**, retry-with-repair on malformed output — never freeform prose parsed after the fact.
+10. **Directional research calls, never instructions** (added Sep 25, 2026). For each new paper, BioLens may say whether it is *likely positive / likely negative / mixed / unlikely to matter* for the company, with categorical confidence, the findings that drove it, and caveats (`api/app/services/paper_impact.py`). This stays inside the investment-adviser "publisher's exclusion" only while every call is: **impersonal** (identical for every reader, never tailored to anyone's holdings — Ask BioLens declines personal-portfolio questions), **bona fide** (grounded in the paper's own abstract, reasoning shown), and **regular** (published on the daily scan's schedule). Never a buy/sell/hold, a price, or a percentage move; output with that language is rejected and repaired. Every call is scored against the stock's actual move vs. XBI and published in full — misses included, sample size next to every rate (`signal_outcomes.py`, `GET /signals/track-record`). Get a securities lawyer's review before charging for this.
 
 ---
 

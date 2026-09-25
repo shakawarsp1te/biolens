@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import Divider from "../../components/Divider";
 import EventCard from "../../components/EventCard";
 import ListContainer from "../../components/ListContainer";
+import ResearchDisclaimer from "../../components/ResearchDisclaimer";
 import ScreenShell from "../../components/ScreenShell";
 import SignalRow from "../../components/SignalRow";
 import { colors, spacing, typography } from "../../constants/theme";
@@ -61,10 +62,7 @@ export default function HomeScreen() {
               />
             ))}
           </ListContainer>
-          <Text style={styles.footnote}>
-            Real papers and SEC filings BioLens&apos;s continuous scan found across every tracked
-            company — plain, sourced facts, not investment advice.
-          </Text>
+          <ResearchDisclaimer />
         </>
       ) : null}
     </ScreenShell>
@@ -78,12 +76,5 @@ const styles = {
     color: colors.textPrimary,
     marginBottom: spacing.sm,
     marginTop: spacing.xl,
-  },
-  footnote: {
-    ...typography.body,
-    fontSize: 12,
-    color: colors.textTertiary,
-    marginTop: spacing.sm,
-    lineHeight: 16,
   },
 } as const;
