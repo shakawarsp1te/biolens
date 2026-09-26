@@ -16,6 +16,7 @@ api/.env
 # hashes and email addresses live here today, ahead of Supabase Auth being
 # provisioned. Never committed, same as api/.env.
 api/db/*.sqlite3
+api/db/last_discovery.txt
 
 # --- general ---
 .DS_Store

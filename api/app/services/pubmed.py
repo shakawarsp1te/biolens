@@ -57,7 +57,10 @@ def _rate_for(api_key: str) -> float:
 # NCBI still returns the occasional 429 even when callers stay under the
 # documented rate (seen live during a full 10-company scan pass), so a
 # 429 is retried with backoff rather than failing that company's scan.
-_MAX_RETRIES_ON_429 = 3
+# Dropped connections get the same treatment: the scheduled scan often runs
+# moments after the Mac wakes, before the network is fully back (seen live:
+# httpcore.ReadError on the Sep 26, 2026 morning run).
+_MAX_RETRIES = 3
 _RETRY_BACKOFF_SECONDS = 1.0
 
 # Search results change as new papers are indexed, so -- unlike esummary/
@@ -156,11 +159,18 @@ class PubMedClient:
 
     async def _get(self, path: str, params: dict[str, Any]) -> httpx.Response:
         assert self._http_client is not None, "use `async with PubMedClient() as client:`"
-        for attempt in range(_MAX_RETRIES_ON_429 + 1):
+        for attempt in range(_MAX_RETRIES + 1):
             await self._rate_limiter.wait()
-            response = await self._http_client.get(path, params={**self._base_params(), **params})
-            if response.status_code != 429 or attempt == _MAX_RETRIES_ON_429:
-                break
+            try:
+                response = await self._http_client.get(
+                    path, params={**self._base_params(), **params}
+                )
+            except httpx.TransportError:
+                if attempt == _MAX_RETRIES:
+                    raise
+            else:
+                if response.status_code != 429 or attempt == _MAX_RETRIES:
+                    break
             await asyncio.sleep(_RETRY_BACKOFF_SECONDS * 2**attempt)
         response.raise_for_status()
         return response

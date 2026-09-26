@@ -260,3 +260,27 @@ async def test_expired_esearch_cache_refetches(
         monkeypatch.setattr("app.services.pubmed._ESEARCH_CACHE_TTL_SECONDS", 0.0)
         await client.search_by_drug_name("onvansertib")
     assert transport.request_count == 2
+
+
+@pytest.mark.asyncio
+async def test_dropped_connection_is_retried(no_wait_limiter, monkeypatch):
+    monkeypatch.setattr("app.services.pubmed._RETRY_BACKOFF_SECONDS", 0.0)
+    attempts = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise httpx.ReadError("connection dropped", request=request)
+        return httpx.Response(200, json=load_json("pubmed_esearch_drug.json"))
+
+    http_client = httpx.AsyncClient(
+        base_url="https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+        transport=httpx.MockTransport(handler),
+    )
+    async with PubMedClient(
+        http_client=http_client, cache=InMemoryCacheStore(), rate_limiter=no_wait_limiter
+    ) as client:
+        pmids = await client.search_by_drug_name("onvansertib")
+
+    assert pmids == load_json("pubmed_esearch_drug.json")["esearchresult"]["idlist"]
+    assert attempts["n"] == 2

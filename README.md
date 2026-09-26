@@ -65,6 +65,12 @@ uvicorn app.main:app --reload
 ```
 Check `http://localhost:8000/health`. The company database seeds itself automatically on first boot — no manual setup script required.
 
+**Automatic updates (macOS)**
+```bash
+api/scripts/install_scan_schedule.sh          # every 6 hours; add --daily for once a day
+```
+Each run finds new PubMed papers and SEC filings for every company, has Claude make an impact call on each new paper, and scores earlier calls against the stock's actual move. New-company discovery runs at most weekly. Log: `~/Library/Logs/biolens-scan.log`. The Mac needs to be on; missed runs happen on the next wake.
+
 **App**
 ```bash
 cd app
