@@ -82,10 +82,34 @@ npm start        # scan the QR code with Expo Go, press i for iOS Simulator, or 
 
 ## Deploying your own copy
 
-1. **Backend → Render.** [render.com](https://render.com) → New → Blueprint → connect this repo. Render reads `render.yaml` and asks for a few secrets (an Anthropic API key at minimum). Free tier.
+1. **Backend → Render.** [render.com](https://render.com) → New → Blueprint → connect this repo. Render reads `render.yaml` and asks for a few secrets (an Anthropic API key at minimum). The free tier works for a demo, but read "Scans without your laptop" below first: without a persistent disk, history resets on every deploy.
 2. **Web app → Vercel.** [vercel.com](https://vercel.com) → New Project → import this repo → set **Root Directory** to `app`. Add an `EXPO_PUBLIC_API_BASE_URL` environment variable pointing at your Render URL, then deploy.
 
 Both have generous free tiers and no credit card required to start.
+
+## Scans without your laptop
+
+The launchd job above only runs while your Mac is awake. To scan on a server instead, deploy the API and let GitHub Actions trigger it every 6 hours (`.github/workflows/scheduled-scan.yml`, with new-company discovery on Mondays). The workflow skips with a notice until it's configured, so it's safe to leave in the repo.
+
+**First, decide on storage.** Render's free tier has no persistent disk, so every deploy or restart wipes the signal history, impact calls, track record, user accounts and any companies you added. The 10 seeded companies come back, but the track record, which only means something once it has accumulated months of calls, starts over each time.
+
+- **Recommended: a paid Render instance with a 1 GB disk.** In `render.yaml`, change `plan: free` to a paid plan and uncomment the `disk:` block and the three `*_DB_PATH` variables. No code changes; check [render.com/pricing](https://render.com/pricing) for the current cost.
+- **Later: Postgres.** The planned Supabase migration (docs/PLAN.md) replaces all three SQLite stores. It's the right long-term home, but it's a real migration, not a config change.
+
+**Then:**
+
+1. **Deploy the API on Render:** New → Blueprint → this repo. Set `ANTHROPIC_API_KEY`, `ADMIN_TOKEN` (any long random string), `SEC_EDGAR_CONTACT_EMAIL` and `PUBMED_CONTACT_EMAIL`. Check that `https://<your-service>.onrender.com/health` responds.
+2. **Connect GitHub Actions:** in the repo's Settings → Secrets and variables → Actions, add a **variable** `BIOLENS_API_URL` (your Render URL, no trailing slash) and a **secret** `BIOLENS_ADMIN_TOKEN` (the same value as `ADMIN_TOKEN`).
+3. **Run it once by hand:** Actions → Scheduled scan → Run workflow. The first scan on a fresh server only records a baseline of what already exists. New papers and filings are reported from the second scan on.
+4. **Re-add companies you added locally**, since the server starts from the seeded 10:
+   ```bash
+   curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" "$BIOLENS_API_URL/companies/discover?sponsor=Innovent"
+   ```
+   Hand edits to a profile (like approving one) live in your local database and need redoing on the server.
+5. **Turn off the laptop job** so the two don't keep separate histories:
+   ```bash
+   api/scripts/install_scan_schedule.sh --uninstall
+   ```
 
 ## Checks
 

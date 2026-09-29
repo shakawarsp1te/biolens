@@ -48,7 +48,7 @@ def test_get_company_returns_profile_when_found(monkeypatch):
 
 
 def test_discover_runs_a_pass_and_returns_what_was_added(monkeypatch):
-    async def fake_run_discovery_pass(*, max_new):
+    async def fake_run_discovery_pass(*, max_new, sponsor=None):
         assert max_new == 2
         return [{"id": "small-bio-inc", "name": "Small Bio Inc", "trialCount": 3}]
 
@@ -62,7 +62,7 @@ def test_discover_runs_a_pass_and_returns_what_was_added(monkeypatch):
 
 
 def test_discover_defaults_max_new_to_three(monkeypatch):
-    async def fake_run_discovery_pass(*, max_new):
+    async def fake_run_discovery_pass(*, max_new, sponsor=None):
         assert max_new == 3
         return []
 
@@ -85,7 +85,7 @@ def test_discover_is_open_when_no_admin_token_configured(monkeypatch):
 
     monkeypatch.setattr(get_settings(), "admin_token", "")
 
-    async def fake_run_discovery_pass(*, max_new):
+    async def fake_run_discovery_pass(*, max_new, sponsor=None):
         return []
 
     monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
@@ -117,7 +117,7 @@ def test_discover_accepts_correct_token(monkeypatch):
 
     monkeypatch.setattr(get_settings(), "admin_token", "correct-token")
 
-    async def fake_run_discovery_pass(*, max_new):
+    async def fake_run_discovery_pass(*, max_new, sponsor=None):
         return []
 
     monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
@@ -257,3 +257,19 @@ def test_signals_forwards_limit_query_param(monkeypatch):
 
     response = client.get("/companies/co-1/signals", params={"limit": 5})
     assert response.status_code == 200
+
+
+def test_discover_forwards_a_specific_sponsor(monkeypatch):
+    from app.core.config import get_settings
+
+    seen = {}
+
+    async def fake_run_discovery_pass(*, max_new, sponsor=None):
+        seen["sponsor"] = sponsor
+        return []
+
+    monkeypatch.setattr(get_settings(), "admin_token", "")
+    monkeypatch.setattr(companies_router_module, "run_discovery_pass", fake_run_discovery_pass)
+    response = client.post("/companies/discover", params={"sponsor": "Innovent"})
+    assert response.status_code == 200
+    assert seen["sponsor"] == "Innovent"

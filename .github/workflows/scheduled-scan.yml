@@ -1,0 +1,74 @@
+name: Scheduled scan
+
+# Runs BioLens's scan on the deployed API every 6 hours, so new papers and
+# SEC filings are found and assessed whether or not anyone's laptop is on.
+# The laptop equivalent is api/scripts/install_scan_schedule.sh; once this
+# is live, uninstall that with `api/scripts/install_scan_schedule.sh
+# --uninstall` so the two don't keep separate histories.
+#
+# Needs, in GitHub -> Settings -> Secrets and variables -> Actions:
+#   variable BIOLENS_API_URL   e.g. https://biolens-api.onrender.com
+#   secret   BIOLENS_ADMIN_TOKEN  the same value as ADMIN_TOKEN on Render
+# Until BIOLENS_API_URL is set this workflow skips with a notice instead of
+# failing, so it's safe to have in the repo before anything is deployed.
+
+on:
+  schedule:
+    - cron: "15 */6 * * *" # every 6 hours
+    - cron: "45 14 * * 1" # Mondays: also run new-company discovery
+  workflow_dispatch:
+    inputs:
+      run_discovery:
+        description: "Also run new-company discovery (real LLM cost)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: scheduled-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Skip when no deployment is configured
+        id: config
+        env:
+          API_URL: ${{ vars.BIOLENS_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::notice::BIOLENS_API_URL isn't set; nothing deployed to scan yet. See README 'Scans without your laptop'."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wake the API
+        if: steps.config.outputs.skip == 'false'
+        env:
+          API_URL: ${{ vars.BIOLENS_API_URL }}
+        # A free-tier host sleeps when idle; the first request can take a
+        # minute while it starts.
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS --max-time 60 "$API_URL/health"; then echo; exit 0; fi
+            echo "Not up yet (attempt $attempt); retrying in 15s"
+            sleep 15
+          done
+          echo "::error::API at $API_URL never became healthy"
+          exit 1
+
+      - name: Run scan
+        if: steps.config.outputs.skip == 'false'
+        env:
+          API_URL: ${{ vars.BIOLENS_API_URL }}
+          ADMIN_TOKEN: ${{ secrets.BIOLENS_ADMIN_TOKEN }}
+          DISCOVER: ${{ github.event.schedule == '45 14 * * 1' || inputs.run_discovery == true }}
+        run: |
+          echo "run_discovery=$DISCOVER"
+          curl -fsS --max-time 1500 -X POST \
+            -H "X-Admin-Token: $ADMIN_TOKEN" \
+            "$API_URL/scan/run?run_discovery=$DISCOVER" | tee summary.json
+          echo
+          python3 -c "import json; s=json.load(open('summary.json')); print('::notice::' + ', '.join(f'{k}={v}' for k, v in s.items()))"

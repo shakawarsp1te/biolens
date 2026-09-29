@@ -40,10 +40,16 @@ async def list_companies() -> list[dict]:
 
 @router.post("/discover")
 async def discover(
-    max_new: int = Query(3, ge=1, le=10), x_admin_token: str | None = Header(default=None)
+    max_new: int = Query(3, ge=1, le=10),
+    sponsor: str | None = Query(
+        None,
+        description='Draft one specific company instead, e.g. "Pfizer" (subsidiary names '
+        "resolve to their parent).",
+    ),
+    x_admin_token: str | None = Header(default=None),
 ) -> dict:
     require_admin_token(x_admin_token)
-    added = await run_discovery_pass(max_new=max_new)
+    added = await run_discovery_pass(max_new=max_new, sponsor=sponsor)
     return {"added": added, "count": len(added)}
 
 

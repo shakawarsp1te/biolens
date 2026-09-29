@@ -39,3 +39,18 @@ services:
       # to type in.
       - key: JWT_SECRET
         generateValue: true
+      # --- Persistent storage (recommended; see README "Scans without your
+      # laptop"). Without a disk, the signal history, impact calls, track
+      # record, accounts and added companies reset on every deploy. Disks
+      # need a paid instance: change `plan: free` above (e.g. to `starter`),
+      # then uncomment these three and the `disk:` block below.
+      # - key: COMPANY_DB_PATH
+      #   value: /var/data/biolens_companies.sqlite3
+      # - key: SIGNAL_DB_PATH
+      #   value: /var/data/biolens_signals.sqlite3
+      # - key: USER_DB_PATH
+      #   value: /var/data/biolens_users.sqlite3
+    # disk:
+    #   name: biolens-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
