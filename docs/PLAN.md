@@ -1,6 +1,6 @@
 # BioLens — Build Plan
 
-> **Mission:** Help investors discover the frontier of biotechnology and understand the science behind emerging companies, therapies, and clinical-trial catalysts — with the simplicity of a consumer app, not a Bloomberg terminal.
+> **Mission:** A biotech intelligence platform combining scientific, clinical, and financial data to evaluate companies and therapeutic pipelines — with the simplicity of a consumer app, not a Bloomberg terminal. (Sep 28, 2026 repositioning; originally "help investors discover the frontier of biotechnology and understand the science behind emerging companies".)
 
 This plan is derived from the BioLens Master Build Brief. It exists to keep implementation scoped to a **30-day, mobile-only MVP** and to prevent scope creep into the many "future version" features described in the brief.
 

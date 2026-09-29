@@ -264,8 +264,11 @@ export async function getStockHistory(
 export interface FinancialHealth {
   ticker: string;
   companyName: string | null;
+  /** Cash, cash equivalents and marketable securities. */
   cashOnHand: number;
   cashAsOf: string;
+  cashAndEquivalents: number | null;
+  marketableSecurities: number | null;
   quarterlyBurn: number | null;
   burnPeriodStart: string | null;
   burnPeriodEnd: string | null;
@@ -285,6 +288,78 @@ export async function getFinancialHealth(ticker: string): Promise<FinancialHealt
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
+}
+
+/** Market cap, enterprise value and plain multiples, from the company's own
+ * SEC filings plus its live price (api/app/services/valuation.py). Facts
+ * about how the market prices the company — never labeled cheap or
+ * expensive. */
+export interface Valuation {
+  ticker: string;
+  priceAsOf: string | null;
+  marketCap: number;
+  sharePrice: number;
+  sharesOutstanding: number;
+  sharesAsOf: string;
+  cashAndInvestments: number | null;
+  cashAsOf: string | null;
+  totalDebt: number | null;
+  debtAsOf: string | null;
+  enterpriseValue: number | null;
+  ttmRevenue: number | null;
+  ttmRevenueThrough: string | null;
+  ttmRnD: number | null;
+  ttmRnDThrough: string | null;
+  evToRevenue: number | null;
+  netCashToMarketCap: number | null;
+  notes: string[];
+}
+
+/** Null on a 404: a foreign filer, a non-USD listing, or missing data —
+ * BioLens won't show a market cap it can't compute correctly. */
+export async function getValuation(ticker: string): Promise<Valuation | null> {
+  try {
+    return await apiGet<Valuation>(`/market/valuation/${encodeURIComponent(ticker)}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+// --- Competitor pipelines (api/app/services/competitors.py) ---
+
+export interface CompetitorTrial {
+  nctId: string;
+  title: string;
+  phase: string;
+  status: string;
+  url: string;
+}
+
+export interface Competitor {
+  company: string;
+  ticker: string | null;
+  /** Set when BioLens tracks this company — links to its profile. */
+  trackedCompanyId: string | null;
+  mostAdvancedPhase: string;
+  trialCount: number;
+  drugs: string[];
+  trials: CompetitorTrial[];
+}
+
+export interface AssetCompetitors {
+  drugName: string;
+  target: string;
+  /** False when the profile's target isn't specific enough to search. */
+  searchable: boolean;
+  /** False when the ClinicalTrials.gov lookup failed this time. */
+  available: boolean;
+  searchTerms: string[];
+  competitors: Competitor[];
+}
+
+export function getCompanyCompetitors(id: string): Promise<AssetCompetitors[]> {
+  return apiGet<AssetCompetitors[]>(`/companies/${encodeURIComponent(id)}/competitors`);
 }
 
 // --- Accounts (api/app/routers/auth.py) ---

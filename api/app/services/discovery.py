@@ -69,7 +69,13 @@ PARENT_COMPANIES: tuple[ParentCompany, ...] = (
         "bristol-myers-squibb",
         "Bristol Myers Squibb",
         "BMY",
-        ("bristol-myers squibb", "bristol myers squibb", "celgene", "juno therapeutics"),
+        (
+            "bristol-myers squibb",
+            "bristol myers squibb",
+            "celgene",
+            "juno therapeutics",
+            "mirati therapeutics",
+        ),
     ),
     ParentCompany(
         "johnson-and-johnson", "Johnson & Johnson", "JNJ", ("johnson & johnson", "janssen")
@@ -91,6 +97,9 @@ PARENT_COMPANIES: tuple[ParentCompany, ...] = (
     ParentCompany("moderna", "Moderna", "MRNA", ("moderna",)),
     ParentCompany("eisai", "Eisai", "ESALY", ("eisai",)),
     ParentCompany("otsuka", "Otsuka", "OTSKY", ("otsuka",)),
+    ParentCompany(
+        "servier", "Servier", None, ("servier", "institut de recherches internationales servier")
+    ),
     ParentCompany("innovent-biologics", "Innovent Biologics", "1801.HK", ("innovent", "fortvita")),
 )
 

@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.services.financial_health import compute_financial_health
 from app.services.market_data import CHART_RANGES, MarketDataClient
 from app.services.sec_edgar import SecEdgarClient
+from app.services.valuation import compute_valuation
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -79,3 +80,27 @@ async def get_financial_health(ticker: str) -> dict:
         "companyName": facts.get("entityName"),
         **result.model_dump(),
     }
+
+
+@router.get("/valuation/{ticker}")
+async def get_valuation(ticker: str) -> dict:
+    """Market cap, enterprise value, trailing revenue/R&D and plain
+    multiples, computed from the company's own SEC filings and its live
+    share price (app/services/valuation.py), with every input and its date.
+    A 404 means a correct figure can't be computed -- a foreign filer, a
+    non-USD listing, or missing data -- never a guess."""
+    async with MarketDataClient() as market, SecEdgarClient() as sec:
+        quote = await market.get_quote(ticker)
+        cik = await sec.get_cik(ticker)
+        facts = await sec.get_company_facts(cik) if cik else None
+
+    if quote is None or facts is None:
+        raise HTTPException(status_code=404, detail=f"No valuation data for '{ticker}' right now.")
+    result = compute_valuation(facts, share_price=quote["price"], currency=quote.get("currency"))
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"'{ticker}' isn't a US-GAAP filer with a USD listing, so BioLens can't "
+            "compute its valuation reliably.",
+        )
+    return {"ticker": ticker.upper(), "priceAsOf": quote.get("market_time"), **result.model_dump()}

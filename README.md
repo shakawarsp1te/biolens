@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/shakawarsp1te/biolens/actions/workflows/ci.yml/badge.svg)](https://github.com/shakawarsp1te/biolens/actions/workflows/ci.yml)
 
-**The frontier of biotechnology, explained simply — for investors who want to understand emerging biotech before it's obvious, not just be told what to buy.**
+**A biotech intelligence platform combining scientific, clinical, and financial data to evaluate companies and therapeutic pipelines.**
 
-BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-language company profiles, trial interpretations, catalyst calendars, and a daily read on whether each new paper is likely good or bad news for the company — with a hard rule running through every screen: it explains what the evidence means, and it never tells you what to do about it. No BUY/SELL calls, no price targets, no fabricated confidence scores, and a public track record of how every call held up.
+BioLens joins real ClinicalTrials.gov, PubMed, and SEC EDGAR data into one view of each company: its pipeline and competitors, trial catalysts, cash runway and valuation, and a running read on whether each new paper is likely good or bad news for the company — with a hard rule running through every screen: it explains what the evidence means, and it never tells you what to do about it. No BUY/SELL calls, no price targets, no fabricated confidence scores, and a public track record of how every call held up.
 
 **Live demo:** _add your deployed URL here_ · **API docs:** `/docs` on the deployed backend
 
@@ -15,12 +15,14 @@ BioLens turns real ClinicalTrials.gov, PubMed, and SEC filing data into plain-la
 - **Discover** — oncology companies, from emerging biotechs to large pharma, ranked by a deterministic *Frontier Score* (research activity, explicitly not "investment attractiveness"), with filters for stage, modality, target, and therapeutic area.
 - **Auto-discovery pipeline** — finds real, newly-active, industry-sponsored trials on ClinicalTrials.gov, folds subsidiaries into their publicly traded parent (Janssen → Johnson & Johnson, JNJ), and drafts a new company profile grounded strictly in that company's own lead-sponsored trials — a large company is represented by its most advanced recent trials, and its profile says so. Add a specific company with `python -m scripts.run_discovery --sponsor "Pfizer"`. Every AI-drafted profile is flagged `pending review`, never presented as verified.
 - **Company profiles** — a real pipeline (drug → target → modality → trial → phase), a two-sided thesis map ("what has to go right" / "what could go wrong" — deliberately monochrome, never green/red), and a live stock quote where one exists.
-- **Cash runway** — computed from a company's own SEC filings (XBRL, no LLM involved), the same "BioLens calculated, never invented" discipline as everything else.
+- **Cash runway** — cash plus marketable securities against quarterly operating burn, computed from a company's own SEC filings (XBRL, no LLM involved), the same "BioLens calculated, never invented" discipline as everything else.
+- **Valuation** — market cap, enterprise value, trailing-twelve-month revenue and R&D, EV/revenue, and net cash as a share of market cap, from SEC filings plus the live share price, with every input shown. Facts about how the market prices a company, never a "cheap/expensive" label. US-GAAP filers with USD listings only — BioLens won't show a market cap it can't compute correctly (foreign ADRs).
+- **Competitor pipelines** — for each drug, other companies' active Phase 2+ industry trials against the same target, grouped by company (subsidiaries folded into parents) and linked to ClinicalTrials.gov.
 - **Paper impact calls + track record** — a daily scan of PubMed and SEC EDGAR for every tracked company; each new paper gets a plain-language call (likely positive / likely negative / mixed / unlikely to matter, with confidence, reasoning, and caveats), then gets scored against the stock's actual move vs. the XBI biotech index at 1, 5, and 20 trading days. Every call is published, misses included.
 - **Catalyst calendar** — upcoming trial-readout dates, sourced straight from each trial's own ClinicalTrials.gov disclosure, never scraped or guessed.
 - **Ask BioLens** — a RAG assistant scoped strictly to the facts already on the page it's asked from. No open-web fallback; it says so plainly when the evidence on hand isn't enough to answer.
 - **Live search** — hits ClinicalTrials.gov and PubMed directly, no local database required.
-- A real account system, watchlist (companies/drugs/targets), and a company comparison view.
+- A real account system, watchlist (companies/drugs/targets), and a side-by-side comparison screen covering pipeline, stage, cash, runway, valuation, and next catalyst.
 
 ## Why it's built the way it is
 

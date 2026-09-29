@@ -2,24 +2,24 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { colors, spacing, typography } from "../constants/theme";
 import { getFinancialHealth } from "../services/api";
+import { formatMoney } from "../utils/money";
 import ListContainer from "./ListContainer";
 
 type State =
   | { status: "loading" }
   | { status: "unavailable" }
-  | { status: "loaded"; cashOnHand: string; runwayLabel: string; burnLabel: string | null; note: string | null; asOf: string };
-
-function formatMoney(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(2)}B`;
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
-}
+  | {
+      status: "loaded";
+      cashOnHand: string;
+      breakdown: string | null;
+      runwayLabel: string;
+      burnLabel: string | null;
+      note: string | null;
+      asOf: string;
+    };
 
 /**
- * Cash on hand and the runway it implies — computed deterministically from
+ * Cash and marketable securities, and the runway they imply — computed deterministically from
  * the company's own SEC filings (api/app/services/financial_health.py),
  * never an LLM estimate. Fetches independently on mount, exactly like
  * StockQuoteCard's quote/history, since this is a separate slower external
@@ -45,10 +45,12 @@ export default function FinancialHealthCard({ ticker }: { ticker: string }) {
         setState({
           status: "loaded",
           cashOnHand: formatMoney(health.cashOnHand),
+          breakdown:
+            health.marketableSecurities && health.cashAndEquivalents != null
+              ? `${formatMoney(health.cashAndEquivalents)} cash + ${formatMoney(health.marketableSecurities)} marketable securities`
+              : null,
           runwayLabel:
-            health.runwayMonths != null
-              ? `${health.runwayMonths.toFixed(1)} months`
-              : "—",
+            health.runwayMonths != null ? `${health.runwayMonths.toFixed(1)} months` : "—",
           burnLabel:
             health.quarterlyBurn != null
               ? `${health.quarterlyBurn > 0 ? "+" : ""}${formatMoney(health.quarterlyBurn)}`
@@ -71,23 +73,26 @@ export default function FinancialHealthCard({ ticker }: { ticker: string }) {
     <View style={styles.wrap}>
       <Text style={styles.heading}>Cash & runway</Text>
       <ListContainer>
-        <Row label="Cash on hand" value={state.cashOnHand} />
+        <Row label="Cash & investments" value={state.cashOnHand} detail={state.breakdown} />
         {state.burnLabel ? <Row label="Last quarter's burn" value={state.burnLabel} /> : null}
         <Row label="Estimated runway" value={state.runwayLabel} />
       </ListContainer>
       <Text style={styles.footnote}>
         {state.note ? `${state.note} ` : ""}
-        BioLens calculated, from cash and operating cash flow reported in the company&apos;s SEC
-        filings as of {state.asOf}.
+        BioLens calculated, from cash, marketable securities, and operating cash flow reported in
+        the company&apos;s SEC filings as of {state.asOf}.
       </Text>
     </View>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, detail }: { label: string; value: string; detail?: string | null }) {
   return (
     <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={styles.rowLabelWrap}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
+      </View>
       <Text style={styles.rowValue}>{value}</Text>
     </View>
   );
@@ -107,9 +112,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.sm + 2,
   },
+  rowLabelWrap: { flexShrink: 1, paddingRight: spacing.md },
   rowLabel: {
     ...typography.label,
     color: colors.textSecondary,
+  },
+  rowDetail: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginTop: 2,
   },
   rowValue: {
     ...typography.mono,

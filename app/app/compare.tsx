@@ -6,6 +6,8 @@ import ScreenShell from "../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { useCompanies } from "../context/CompaniesContext";
 import { CompanyRecord, FRONTIER_SCORE_EXPLANATION } from "../types/domain";
+import { formatMoney } from "../utils/money";
+import { CompanyFinancials, useCompanyFinancials } from "../utils/useCompanyFinancials";
 
 /**
  * Side-by-side comparison of two companies' Frontier Score, stage, and
@@ -30,6 +32,8 @@ export default function CompareScreen() {
 
   const companyA = useMemo(() => buildComparable(companies, selectedIdA), [companies, selectedIdA]);
   const companyB = useMemo(() => buildComparable(companies, selectedIdB), [companies, selectedIdB]);
+  const finA = useCompanyFinancials(companyA?.id, companyA?.ticker);
+  const finB = useCompanyFinancials(companyB?.id, companyB?.ticker);
 
   if (isLoading) {
     return (
@@ -42,7 +46,10 @@ export default function CompareScreen() {
   }
 
   return (
-    <ScreenShell title="Compare" subtitle="Frontier Score ranks research activity, not investment attractiveness.">
+    <ScreenShell
+      title="Compare"
+      subtitle="Frontier Score ranks research activity, not investment attractiveness."
+    >
       <Text style={styles.pickerLabel}>Company A</Text>
       <View style={styles.pillRow}>
         {companies.map((company) => (
@@ -93,8 +100,67 @@ export default function CompareScreen() {
             valueA={String(companyA.pipelineCount)}
             valueB={String(companyB.pipelineCount)}
           />
-          <MetricRow label="Primary focus" valueA={companyA.primaryFocus} valueB={companyB.primaryFocus} />
-          <MetricRow label="In one sentence" valueA={companyA.oneSentence} valueB={companyB.oneSentence} />
+          <MetricRow
+            label="Therapeutic area"
+            valueA={companyA.therapeuticArea}
+            valueB={companyB.therapeuticArea}
+          />
+          <MetricRow
+            label="Primary focus"
+            valueA={companyA.primaryFocus}
+            valueB={companyB.primaryFocus}
+          />
+
+          <Text style={styles.sectionLabel}>Financials</Text>
+          <MetricRow
+            label="Market cap"
+            valueA={money(finA.valuation?.marketCap, finA)}
+            valueB={money(finB.valuation?.marketCap, finB)}
+          />
+          <MetricRow
+            label="Enterprise value"
+            valueA={money(finA.valuation?.enterpriseValue, finA)}
+            valueB={money(finB.valuation?.enterpriseValue, finB)}
+          />
+          <MetricRow
+            label="Cash & investments"
+            valueA={money(finA.health?.cashOnHand, finA)}
+            valueB={money(finB.health?.cashOnHand, finB)}
+          />
+          <MetricRow
+            label="Quarterly burn"
+            valueA={money(finA.health?.quarterlyBurn, finA)}
+            valueB={money(finB.health?.quarterlyBurn, finB)}
+          />
+          <MetricRow label="Runway" valueA={runway(finA)} valueB={runway(finB)} />
+          <MetricRow
+            label="Revenue (12 mo)"
+            valueA={money(finA.valuation?.ttmRevenue, finA)}
+            valueB={money(finB.valuation?.ttmRevenue, finB)}
+          />
+          <MetricRow
+            label="R&D spend (12 mo)"
+            valueA={money(finA.valuation?.ttmRnD, finA)}
+            valueB={money(finB.valuation?.ttmRnD, finB)}
+          />
+          <MetricRow
+            label="EV / revenue"
+            valueA={multiple(finA.valuation?.evToRevenue, finA)}
+            valueB={multiple(finB.valuation?.evToRevenue, finB)}
+          />
+          <MetricRow label="Next catalyst" valueA={catalyst(finA)} valueB={catalyst(finB)} />
+          <Text style={styles.footnote}>
+            Financials are BioLens calculated from each company&apos;s SEC filings and live share
+            price; &quot;—&quot; means not reported or not computable (private companies, non-US
+            filers). Facts about each company, not a ranking of which is the better investment.
+          </Text>
+
+          <Text style={styles.sectionLabel}>Research</Text>
+          <MetricRow
+            label="In one sentence"
+            valueA={companyA.oneSentence}
+            valueB={companyB.oneSentence}
+          />
           <MetricRow label="Key risk" valueA={companyA.keyRisk} valueB={companyB.keyRisk} />
 
           <Text style={styles.footnote}>{FRONTIER_SCORE_EXPLANATION}</Text>
@@ -148,6 +214,8 @@ function MetricRow({
 interface Comparable {
   id: string;
   name: string;
+  ticker?: string;
+  therapeuticArea: string;
   frontierScore: number;
   stage: string;
   maturity: string;
@@ -158,12 +226,37 @@ interface Comparable {
   keyRisk: string;
 }
 
+function money(value: number | null | undefined, fin: CompanyFinancials): string {
+  if (fin.loading) return "…";
+  return value == null ? "—" : formatMoney(value);
+}
+
+function multiple(value: number | null | undefined, fin: CompanyFinancials): string {
+  if (fin.loading) return "…";
+  return value == null ? "—" : `${value.toFixed(1)}×`;
+}
+
+function runway(fin: CompanyFinancials): string {
+  if (fin.loading) return "…";
+  const months = fin.health?.runwayMonths;
+  return months == null ? "—" : `${months.toFixed(1)} mo`;
+}
+
+function catalyst(fin: CompanyFinancials): string {
+  if (fin.loading) return "…";
+  const c = fin.nextCatalyst;
+  if (!c) return "—";
+  return `${c.expectedDate.slice(0, 7)}${c.dateType === "ESTIMATED" ? " (est.)" : ""}`;
+}
+
 function buildComparable(companies: CompanyRecord[], id: string): Comparable | null {
   const company = companies.find((c) => c.id === id);
   if (!company) return null;
   return {
     id,
     name: company.name,
+    ticker: company.ticker ?? undefined,
+    therapeuticArea: company.therapeuticArea,
     frontierScore: company.frontierScore,
     stage: company.stage,
     maturity: company.maturity,
@@ -242,6 +335,12 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginTop: spacing.md,
     textAlign: "center",
+  },
+  sectionLabel: {
+    ...typography.label,
+    color: colors.textPrimary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xs,
   },
   exploreRow: {
     flexDirection: "row",

@@ -42,7 +42,7 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ScreenShell brand title="The Frontier" subtitle="What's moving biotechnology forward today?">
+    <ScreenShell brand title="The Frontier" subtitle="Science, trials, and financials across the biotech companies you follow.">
       {MOCK_EVENTS.map((event, i) => (
         <React.Fragment key={event.id}>
           {i > 0 ? <Divider /> : null}

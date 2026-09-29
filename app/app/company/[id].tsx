@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import AskBioLensBox from "../../components/AskBioLensBox";
 import Avatar from "../../components/Avatar";
 import CatalystCalendarCard from "../../components/CatalystCalendarCard";
+import CompetitorsCard from "../../components/CompetitorsCard";
 import EvidenceBadge from "../../components/EvidenceBadge";
 import FinancialHealthCard from "../../components/FinancialHealthCard";
 import ListContainer from "../../components/ListContainer";
@@ -11,6 +12,7 @@ import PipelineAssetRow from "../../components/PipelineAssetRow";
 import ScreenShell from "../../components/ScreenShell";
 import SignalFeedCard from "../../components/SignalFeedCard";
 import StockQuoteCard from "../../components/StockQuoteCard";
+import ValuationCard from "../../components/ValuationCard";
 import ThesisMap from "../../components/ThesisMap";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useCompanies } from "../../context/CompaniesContext";
@@ -115,13 +117,18 @@ export default function CompanyProfileScreen() {
         ))}
       </ListContainer>
 
+      <CompetitorsCard key={`competitors-${company.id}`} companyId={company.id} />
+
       <CatalystCalendarCard key={`catalysts-${company.id}`} companyId={company.id} />
 
-      <SignalFeedCard key={`signals-${company.id}`} companyId={company.id} />
-
       {company.ticker ? (
-        <FinancialHealthCard key={`health-${company.ticker}`} ticker={company.ticker} />
+        <>
+          <FinancialHealthCard key={`health-${company.ticker}`} ticker={company.ticker} />
+          <ValuationCard key={`valuation-${company.ticker}`} ticker={company.ticker} />
+        </>
       ) : null}
+
+      <SignalFeedCard key={`signals-${company.id}`} companyId={company.id} />
 
       <Text style={styles.heading}>Thesis map</Text>
       <View style={styles.thesisMapCard}>

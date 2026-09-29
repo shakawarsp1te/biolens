@@ -18,12 +18,15 @@ Left as no-op (open) when admin_token is unset, matching local-dev today.
 
 from __future__ import annotations
 
+import httpx
 from fastapi import APIRouter, Header, HTTPException, Query
 
 from app.core.admin import require_admin_token
+from app.core.config import get_settings
 from app.services.catalysts import get_catalysts_for_company
 from app.services.clinicaltrials import ClinicalTrialsClient
 from app.services.company_store import get_company_store
+from app.services.competitors import get_competitors_for_company
 from app.services.discovery import run_discovery_pass
 from app.services.signal_store import get_signal_store
 
@@ -65,6 +68,22 @@ async def get_company_catalysts(company_id: str) -> list[dict]:
     async with ClinicalTrialsClient() as client:
         events = await get_catalysts_for_company(company, client=client)
     return [event.model_dump() for event in events]
+
+
+@router.get("/{company_id}/competitors")
+async def get_company_competitors(company_id: str) -> list[dict]:
+    """Per pipeline asset: other companies' active Phase 2+ industry trials
+    naming the same target (app/services/competitors.py) -- real, linked
+    CT.gov records, grouped by company. Empty competitor lists are normal."""
+    store = get_company_store()
+    company = await store.get_company(company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail=f"No company found for id '{company_id}'.")
+    tracked = {c["name"].lower(): c["id"] for c in await store.list_companies()}
+    async with httpx.AsyncClient(
+        base_url=get_settings().clinicaltrials_api_base, timeout=20.0
+    ) as http_client:
+        return await get_competitors_for_company(company, http_client=http_client, tracked=tracked)
 
 
 @router.get("/{company_id}/signals")

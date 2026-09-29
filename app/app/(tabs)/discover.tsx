@@ -102,7 +102,7 @@ export default function DiscoverScreen() {
   return (
     <ScreenShell
       title="Discover"
-      subtitle="Emerging oncology companies, ranked by research activity — not investment attractiveness."
+      subtitle="Oncology companies from emerging biotechs to large pharma, ranked by research activity — not investment attractiveness."
     >
       <FilterBar
         dimensions={[

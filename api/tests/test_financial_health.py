@@ -149,3 +149,89 @@ def test_falls_back_through_cash_tags_when_primary_tag_is_absent():
 
     assert result is not None
     assert result.cashOnHand == 10_000_000
+
+
+# --- liquidity: cash + marketable securities, from real filers' tag shapes ---
+# Values are the real Q2 2026 10-Q figures (USD millions) that exposed the
+# cash-only bug on Sep 28, 2026.
+
+
+def _balance_sheet(**tags_in_millions) -> dict:
+    return {
+        "facts": {
+            "us-gaap": {
+                tag: {"units": {"USD": [{"end": "2026-06-30", "val": value * 1_000_000}]}}
+                for tag, value in tags_in_millions.items()
+            }
+        }
+    }
+
+
+def _total(facts) -> float:
+    from app.services.financial_health import latest_liquidity
+
+    return round(latest_liquidity(facts)[0] / 1_000_000, 1)
+
+
+def test_arvinas_cash_plus_current_marketable_securities():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=94.3, MarketableSecuritiesCurrent=473.6
+    )
+    assert _total(facts) == 567.9
+
+
+def test_cardiff_short_term_investments_that_already_span_noncurrent_are_not_double_counted():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=9.2,
+        ShortTermInvestments=25.3,
+        AvailableForSaleSecuritiesDebtSecuritiesCurrent=16.2,
+        AvailableForSaleSecuritiesDebtSecuritiesNoncurrent=9.1,
+        CashCashEquivalentsAndShortTermInvestments=34.5,
+    )
+    assert _total(facts) == 34.5
+
+
+def test_xencor_debt_securities_current_and_noncurrent():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=44.7,
+        DebtSecuritiesCurrent=333.2,
+        DebtSecuritiesNoncurrent=108.5,
+        EquitySecuritiesFvNi=78.6,  # equity stakes: not cash-like, excluded
+    )
+    assert _total(facts) == 486.4
+
+
+def test_relay_total_only_securities_fallback():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=121.2, AvailableForSaleSecuritiesDebtSecurities=789.7
+    )
+    assert _total(facts) == 910.9
+
+
+def test_pfizer_short_term_investments_line_beats_its_smaller_afs_component():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=977.0,
+        AvailableForSaleSecuritiesDebtSecuritiesCurrent=7281.0,
+        AvailableForSaleSecuritiesDebtSecuritiesNoncurrent=0.0,
+        OtherShortTermInvestments=10723.0,
+    )
+    assert _total(facts) == 11700.0
+
+
+def test_runway_uses_cash_plus_securities():
+    facts = _balance_sheet(
+        CashAndCashEquivalentsAtCarryingValue=9.2,
+        AvailableForSaleSecuritiesDebtSecuritiesCurrent=16.2,
+        AvailableForSaleSecuritiesDebtSecuritiesNoncurrent=9.1,
+    )
+    facts["facts"]["us-gaap"]["NetCashProvidedByUsedInOperatingActivities"] = {
+        "units": {
+            "USD": [
+                {"start": "2026-04-01", "end": "2026-06-30", "val": -11_800_000, "form": "10-Q"}
+            ]
+        }
+    }
+    result = compute_financial_health(facts)
+    assert result.cashOnHand == 34_500_000
+    assert result.cashAndEquivalents == 9_200_000
+    assert result.runwayMonths == 8.8
