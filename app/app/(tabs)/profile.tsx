@@ -1,10 +1,15 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Avatar from "../../components/Avatar";
+import ListContainer from "../../components/ListContainer";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
+
+// Hidden until set (app/.env.example): it ships in the bundle, so it must be
+// an address meant to be public.
+const FEEDBACK_EMAIL = process.env.EXPO_PUBLIC_FEEDBACK_EMAIL;
 
 export default function ProfileScreen() {
   const { user, isLoading, logOut } = useAuth();
@@ -36,10 +41,7 @@ export default function ProfileScreen() {
           <Pressable style={styles.secondaryButton} onPress={logOut}>
             <Text style={styles.secondaryButtonText}>Log out</Text>
           </Pressable>
-          <Pressable
-            style={styles.dangerLink}
-            onPress={() => router.push("/auth/delete-account")}
-          >
+          <Pressable style={styles.dangerLink} onPress={() => router.push("/auth/delete-account")}>
             <Text style={styles.dangerLinkText}>Delete account</Text>
           </Pressable>
         </View>
@@ -57,6 +59,23 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      <Text style={styles.sectionTitle}>About BioLens</Text>
+      <ListContainer>
+        <LinkRow label="Not investment advice" onPress={() => router.push("/disclaimer")} />
+        <LinkRow label="Privacy" onPress={() => router.push("/privacy")} />
+        <LinkRow label="Track record of past calls" onPress={() => router.push("/track-record")} />
+        {FEEDBACK_EMAIL ? (
+          <LinkRow
+            label="Send beta feedback"
+            onPress={() =>
+              Linking.openURL(
+                `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent("BioLens beta feedback")}`,
+              )
+            }
+          />
+        ) : null}
+      </ListContainer>
+
       <Text style={styles.disclaimer}>
         BioLens surfaces research activity and clinical evidence for biotechnology companies. It
         never recommends buying, selling, or holding any security, and nothing in this app is
@@ -66,7 +85,31 @@ export default function ProfileScreen() {
   );
 }
 
+function LinkRow({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={styles.linkRow} accessibilityRole="link">
+      <Text style={styles.linkLabel}>{label}</Text>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 17,
+    color: colors.textPrimary,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+  },
+  linkRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm + 4,
+  },
+  linkLabel: { ...typography.body, color: colors.textPrimary },
+  chevron: { ...typography.body, color: colors.textTertiary },
   centered: {
     paddingVertical: spacing.xl,
     alignItems: "center",

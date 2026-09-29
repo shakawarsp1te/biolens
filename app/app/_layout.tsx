@@ -53,6 +53,8 @@ export default function RootLayout() {
             <Stack.Screen name="company/[id]" options={barebackHeaderOptions} />
             <Stack.Screen name="compare" options={barebackHeaderOptions} />
             <Stack.Screen name="track-record" options={barebackHeaderOptions} />
+            <Stack.Screen name="disclaimer" options={barebackHeaderOptions} />
+            <Stack.Screen name="privacy" options={barebackHeaderOptions} />
             <Stack.Screen name="stock-detail" options={{ presentation: "modal" }} />
             <Stack.Screen name="auth/sign-up" options={barebackHeaderOptions} />
             <Stack.Screen name="auth/log-in" options={barebackHeaderOptions} />

@@ -138,9 +138,9 @@ Mobile: `AskBioLensBox` (question input + 3 example-question chips + loading/err
 
 - [ ] App icon
 - [ ] Screenshots
-- [ ] Privacy copy
-- [ ] Disclaimer (not investment advice)
-- [ ] Beta feedback mechanism
+- [x] Privacy copy (Sep 29, 2026) — `app/app/privacy.tsx`, from Profile. Every statement checked against the code (bcrypt-hashed accounts deletable server-side, watchlist on-device only, Ask BioLens → API → Anthropic, no analytics SDK); the file's docstring says to update it in the same change as any new data collection.
+- [x] Disclaimer (not investment advice) (Sep 29, 2026) — `app/app/disclaimer.tsx`, from Profile, matching PLAN.md §3 rule 10 in plain language. Not lawyer-reviewed: get that before charging for the product.
+- [x] Beta feedback mechanism (Sep 29, 2026) — "Send beta feedback" mailto on Profile, reading `EXPO_PUBLIC_FEEDBACK_EMAIL` (app/.env.example); hidden until a public-facing address is set.
 - [ ] Submit to TestFlight
 
 ---
