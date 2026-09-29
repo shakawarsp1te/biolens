@@ -15,8 +15,8 @@ export default function ResearchDisclaimer() {
   return (
     <Text style={styles.text}>
       Papers and SEC filings found by BioLens&apos;s daily scan of PubMed and SEC EDGAR. Each call
-      is BioLens&apos;s general read on what a paper means for the company — the same for every
-      reader, not investment advice, and not a price prediction.{" "}
+      is BioLens&apos;s general read on what a paper or filing means for the company — the same for
+      every reader, not investment advice, and not a price prediction.{" "}
       <Text style={styles.link} onPress={() => router.push("/track-record")}>
         See how past calls held up
       </Text>

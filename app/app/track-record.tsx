@@ -52,7 +52,8 @@ export default function TrackRecordScreen() {
     };
   }, []);
 
-  const subtitle = "How BioLens's calls on new papers compared with what the stock did next.";
+  const subtitle =
+    "How BioLens's calls on new papers and SEC filings compared with what the stock did next.";
 
   if (failed) {
     return (
@@ -88,9 +89,9 @@ export default function TrackRecordScreen() {
 
       <Text style={styles.sectionTitle}>How it&apos;s measured</Text>
       <Text style={styles.body}>
-        Each paper&apos;s baseline is the first closing price a BioLens reader could have seen the
+        Each call&apos;s baseline is the first closing price a BioLens reader could have seen the
         call at. BioLens then compares the stock&apos;s move with the {record.benchmark} biotech
-        index over the same days, so a sector-wide swing isn&apos;t counted as the paper&apos;s
+        index over the same days, so a sector-wide swing isn&apos;t counted as the call&apos;s
         effect. A &quot;likely positive&quot; call counts as right when the stock beat{" "}
         {record.benchmark}, and &quot;likely negative&quot; when it lagged. Mixed and
         unlikely-to-matter calls aren&apos;t scored either way. Companies without a public stock
@@ -98,7 +99,8 @@ export default function TrackRecordScreen() {
       </Text>
       <Text style={styles.footnote}>
         Past calls don&apos;t predict future ones. Stocks move for many reasons, and a single paper
-        is rarely the main one. This is general research commentary, not investment advice.
+        or filing is rarely the main one. This is general research commentary, not investment
+        advice.
       </Text>
 
       <Text style={styles.sectionTitle}>Every call</Text>

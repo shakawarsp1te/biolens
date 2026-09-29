@@ -81,6 +81,33 @@ def test_investment_instruction_language_is_rejected(text):
         PaperImpactOutput(**{**GOOD, "reasoning": text})
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The company is selling new shares, which dilutes existing holders.",
+        "The board authorized the company to buy back shares.",
+        "Management will hold an investor call on the results.",
+    ],
+)
+def test_factual_uses_of_buy_sell_hold_are_allowed(text):
+    assert PaperImpactOutput(**{**GOOD, "reasoning": text}).reasoning == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Investors may want to trim exposure.",
+        "This is worth buying at these levels.",
+        "Consider selling before the readout.",
+        "The share price will rise on this news.",
+        "A clear buy signal.",
+    ],
+)
+def test_more_instruction_phrasings_are_rejected(text):
+    with pytest.raises(ValidationError):
+        PaperImpactOutput(**{**GOOD, "reasoning": text})
+
+
 def test_words_containing_banned_substrings_are_fine():
     output = PaperImpactOutput(**{**GOOD, "reasoning": "A buyout is not implied by this data."})
     assert output.direction.value == "likely_positive"

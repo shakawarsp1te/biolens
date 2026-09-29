@@ -17,6 +17,8 @@ listed ticker nor its quarterly filings change on that timescale.
 
 from __future__ import annotations
 
+import html
+import re
 import time
 from typing import Any
 
@@ -35,6 +37,24 @@ _FACTS_CACHE_TTL_SECONDS = 6 * 3600.0
 # notice same-day -- much shorter than the facts cache above, which only
 # needs to reflect a new quarterly/annual report every few months.
 _SUBMISSIONS_CACHE_TTL_SECONDS = 1800.0
+
+_ARCHIVE_BASE = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/"
+# Press releases ride along as Exhibit 99.x; on an 8-K they usually carry
+# the substance, while the primary document is a cover page naming the
+# item. File names aren't reliable (Arvinas: "q22026earningsrelease.htm"),
+# so exhibits are found by the document type the filing index declares.
+_INDEX_EXHIBIT_99 = re.compile(
+    r'<a href="[^"]*/([^"/]+)">[^<]*</a></td>\s*<td[^>]*>\s*EX-99[^<]*</td>', re.I
+)
+_MAX_EXHIBITS = 2
+
+
+def html_to_text(markup: str) -> str:
+    """Plain text from a filing's HTML: drops scripts/styles and the hidden
+    inline-XBRL header, strips tags, unescapes entities, collapses space."""
+    markup = re.sub(r"(?is)<(script|style|ix:header)\b.*?</\1>", " ", markup)
+    markup = re.sub(r"(?s)<[^>]+>", " ", markup)
+    return re.sub(r"\s+", " ", html.unescape(markup)).strip()
 
 
 class SecEdgarClient:
@@ -160,3 +180,42 @@ class SecEdgarClient:
 
         await self._cache.set(cache_key, submissions)
         return submissions
+
+    async def get_filing_text(
+        self, cik: str, accession: str, primary_document: str, *, max_chars: int = 20_000
+    ) -> str | None:
+        """A filing's primary document plus up to two Exhibit 99 press
+        releases, as plain text, capped at `max_chars`. Filings never change
+        once filed, so a hit is cached indefinitely. None on any failure."""
+        cache_key = f"sec:filing-text:{accession}:{max_chars}"
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached.value["text"]
+
+        assert self._http_client is not None, "use `async with SecEdgarClient() as client:`"
+        base = _ARCHIVE_BASE.format(cik=int(cik), accession=accession.replace("-", ""))
+        documents = [primary_document]
+        try:
+            index = await self._http_client.get(f"{base}{accession}-index.html")
+            if index.status_code == 200:
+                exhibits = [n for n in _INDEX_EXHIBIT_99.findall(index.text) if n not in documents]
+                documents += exhibits[:_MAX_EXHIBITS]
+        except httpx.HTTPError:
+            pass
+
+        parts = []
+        for name in documents:
+            try:
+                response = await self._http_client.get(base + name)
+            except httpx.HTTPError:
+                continue
+            if response.status_code == 200:
+                parts.append(html_to_text(response.text))
+        if not parts:
+            return None
+        # Exhibits (the press release) first when present: they carry the
+        # news, and truncation should cut boilerplate, not the substance.
+        ordered = parts[1:] + parts[:1] if len(parts) > 1 else parts
+        text = "\n\n---\n\n".join(ordered)[:max_chars]
+        await self._cache.set(cache_key, {"text": text})
+        return text

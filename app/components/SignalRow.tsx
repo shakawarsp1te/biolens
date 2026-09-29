@@ -37,7 +37,12 @@ export default function SignalRow({
         {signal.occurredAt ? ` · ${signal.occurredAt}` : ""}
       </Text>
       {signal.impact ? (
-        <ImpactCall impact={signal.impact} outcome={signal.outcome} sourceUrl={signal.sourceUrl} />
+        <ImpactCall
+          impact={signal.impact}
+          outcome={signal.outcome}
+          sourceUrl={signal.sourceUrl}
+          source={signal.source}
+        />
       ) : null}
     </View>
   );

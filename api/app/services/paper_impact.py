@@ -47,19 +47,22 @@ class ImpactDirection(str, Enum):
     UNLIKELY_TO_MATTER = "unlikely_to_matter"
 
 
-# Whole-word patterns, so "buyout" or "wholesale" don't trip them.
+# Instructions to the reader, not the words themselves: a filing call has to
+# be able to say "the company is selling new shares" (an offering) or "buy
+# back shares" (a repurchase) -- both plain facts -- while "investors should
+# sell" or "time to buy" never gets through. Whole-word, so "buyout" is fine.
 _BANNED_PATTERNS = [
-    r"\bbuy\b",
-    r"\bbuying\b",
-    r"\bsell\b",
-    r"\bselling\b",
+    r"\b(should|consider|time to|recommend(?:ed|s)?|worth)\s+(?:\w+\s+){0,2}"
+    r"(buy|sell|hold|buying|selling|holding|short|shorting)\b",
+    r"\binvestors (should|may want to|might want to)\b",
+    r"\b(buy|sell|hold)\s+(rating|recommendation|signal)\b",
+    r"\b(buy|sell|short) (the|this|its) stock\b",
+    r"\bstrong buy\b",
     r"\bprice target\b",
     r"\bshould invest\b",
-    r"\bstrong buy\b",
     r"\boutperform rating\b",
-    r"\bstock will\b",
-    r"\bshares will\b",
-    r"\bprice will\b",
+    r"\b(stock|shares|share price|price) (will|is going to|should) (rise|fall|drop|climb|jump|"
+    r"soar|surge|decline|go up|go down|move)\b",
 ]
 
 PAPER_IMPACT_SYSTEM_PROMPT = (
@@ -131,7 +134,7 @@ class PaperImpactError(Exception):
         self.last_error = last_error
 
 
-def _company_context(company: dict[str, Any]) -> str:
+def company_context(company: dict[str, Any]) -> str:
     pipeline_lines = "\n".join(
         f"- {asset.get('drugName')}: {asset.get('modality')} targeting {asset.get('target')} "
         f"in {asset.get('disease')} ({asset.get('stage')})"
@@ -147,11 +150,39 @@ def _company_context(company: dict[str, Any]) -> str:
 
 def _build_prompt(company: dict[str, Any], paper: dict[str, Any]) -> str:
     return (
-        f"{_company_context(company)}\n\n"
+        f"{company_context(company)}\n\n"
         f"PAPER\nTitle: {paper.get('title')}\n"
         f"Journal: {paper.get('journal') or 'unknown'}\n"
         f"Published: {paper.get('pubdate') or 'unknown'}\n"
         f"Abstract: {paper.get('abstract') or '(no abstract available)'}"
+    )
+
+
+async def call_impact_model(
+    *, system: str, prompt: str, provider: LLMProvider, max_repair_attempts: int = 2
+) -> PaperImpactOutput:
+    """One validated impact call, retrying with a repair prompt on
+    validation failure (same orchestration as
+    interpretation.generate_interpretation). Shared by paper and filing
+    calls so both are held to the same no-instruction-language rules."""
+    last_error: ValidationError | None = None
+    for _attempt in range(max_repair_attempts + 1):
+        attempt_prompt = prompt
+        if last_error is not None:
+            attempt_prompt += (
+                "\n\nYour previous attempt failed validation with this error:\n"
+                f"{last_error}\n\nFix it and try again. Only change what's wrong."
+            )
+        try:
+            return await provider.complete_structured(
+                system=system, prompt=attempt_prompt, response_model=PaperImpactOutput
+            )
+        except ValidationError as error:
+            last_error = error
+    raise PaperImpactError(
+        "impact call failed validation after every repair attempt",
+        attempts=max_repair_attempts + 1,
+        last_error=str(last_error),
     )
 
 
@@ -162,27 +193,25 @@ async def assess_paper(
     provider: LLMProvider,
     max_repair_attempts: int = 2,
 ) -> PaperImpactOutput:
-    """One call for one paper, retrying with a repair prompt on validation
-    failure (same orchestration as interpretation.generate_interpretation)."""
-    last_error: ValidationError | None = None
-    for _attempt in range(max_repair_attempts + 1):
-        prompt = _build_prompt(company, paper)
-        if last_error is not None:
-            prompt += (
-                "\n\nYour previous attempt failed validation with this error:\n"
-                f"{last_error}\n\nFix it and try again. Only change what's wrong."
-            )
-        try:
-            return await provider.complete_structured(
-                system=PAPER_IMPACT_SYSTEM_PROMPT, prompt=prompt, response_model=PaperImpactOutput
-            )
-        except ValidationError as error:
-            last_error = error
-    raise PaperImpactError(
-        "paper impact call failed validation after every repair attempt",
-        attempts=max_repair_attempts + 1,
-        last_error=str(last_error),
+    """One call for one paper."""
+    return await call_impact_model(
+        system=PAPER_IMPACT_SYSTEM_PROMPT,
+        prompt=_build_prompt(company, paper),
+        provider=provider,
+        max_repair_attempts=max_repair_attempts,
     )
+
+
+def impact_dict(output: PaperImpactOutput) -> dict[str, Any]:
+    """The `impact` shape stored on a signal and served to the app."""
+    return {
+        "direction": output.direction.value,
+        "confidence": output.confidence.value,
+        "headline": output.headline,
+        "reasoning": output.reasoning,
+        "keyFindings": output.key_findings,
+        "caveats": output.caveats,
+    }
 
 
 def _pmid_from_signal(signal: dict[str, Any]) -> str | None:
@@ -222,7 +251,11 @@ async def assess_paper_signals(
         pmid = _pmid_from_signal(signal)
         article = abstracts.get(pmid or "")
         # A title alone is too thin to call direction on honestly.
-        if article is None or not article.get("abstract"):
+        if article is None:
+            continue
+        if not article.get("abstract"):
+            # Recorded so the backfill doesn't retry it every pass.
+            signal["notAssessed"] = "no_abstract"
             continue
         paper = {
             "title": article.get("title") or signal.get("title"),
@@ -235,12 +268,5 @@ async def assess_paper_signals(
         except Exception:
             logger.exception("impact call failed for paper %s", pmid)
             continue
-        signal["impact"] = {
-            "direction": output.direction.value,
-            "confidence": output.confidence.value,
-            "headline": output.headline,
-            "reasoning": output.reasoning,
-            "keyFindings": output.key_findings,
-            "caveats": output.caveats,
-        }
+        signal["impact"] = impact_dict(output)
     return signals

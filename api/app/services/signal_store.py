@@ -165,16 +165,19 @@ class SignalStore:
             rows = await cursor.fetchall()
         return [json.loads(row["data"]) for row in rows]
 
-    async def list_unassessed_paper_signals(self, *, limit: int = 25) -> list[dict[str, Any]]:
-        """New-paper signals with no impact call yet -- older ones found before
-        paper_impact.py existed, or ones whose call failed last pass."""
+    async def list_unassessed_signals(self, *, limit: int = 25) -> list[dict[str, Any]]:
+        """Paper and filing signals with no impact call yet -- found before
+        calls existed, or whose call failed last pass. Signals deliberately
+        not assessed (no abstract, a routine form) carry `notAssessed` and
+        are left out, so they don't crowd the backlog forever."""
         await self._ensure_initialized()
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT data FROM signals "
-                "WHERE json_extract(data, '$.signalType') = 'new_paper' "
+                "WHERE json_extract(data, '$.signalType') IN ('new_paper', 'new_filing') "
                 "AND json_extract(data, '$.impact') IS NULL "
+                "AND json_extract(data, '$.notAssessed') IS NULL "
                 "ORDER BY detected_at DESC LIMIT ?",
                 (limit,),
             )

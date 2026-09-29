@@ -44,20 +44,25 @@ export function latestHorizon(outcome: SignalOutcome | null | undefined) {
 }
 
 /**
- * BioLens's call on one paper, collapsed to a single direction line plus
+ * BioLens's call on one paper or SEC filing, collapsed to a single direction line plus
  * headline; tapping expands the reasoning, the findings that drove it,
- * what the paper doesn't tell you, and — once enough trading days have
+ * what the source doesn't tell you, and — once enough trading days have
  * passed — what the stock actually did relative to the biotech benchmark.
  */
 export default function ImpactCall({
   impact,
   outcome,
   sourceUrl,
+  source,
 }: {
   impact: PaperImpact;
   outcome?: SignalOutcome | null;
   sourceUrl?: string;
+  /** "PubMed" | "SEC EDGAR" — sets the wording for the source it came from. */
+  source?: string;
 }) {
+  const isFiling = source === "SEC EDGAR";
+  const noun = isFiling ? "filing" : "paper";
   const [expanded, setExpanded] = React.useState(false);
   const meta = DIRECTION_META[impact.direction];
   const latest = latestHorizon(outcome);
@@ -93,7 +98,7 @@ export default function ImpactCall({
           ) : null}
           {impact.caveats.length > 0 ? (
             <>
-              <Text style={styles.subheading}>What this paper doesn&apos;t tell you</Text>
+              <Text style={styles.subheading}>What this {noun} doesn&apos;t tell you</Text>
               {impact.caveats.map((caveat) => (
                 <Text key={caveat} style={styles.bullet}>
                   • {caveat}
@@ -108,14 +113,14 @@ export default function ImpactCall({
                 <Text style={styles.mono}>{formatReturn(latest.horizon.stockReturn)}</Text> over{" "}
                 {latest.label}, vs{" "}
                 <Text style={styles.mono}>{formatReturn(latest.horizon.benchmarkReturn)}</Text> for{" "}
-                {outcome?.benchmark} (biotech index). Many things move a stock; one paper is rarely
+                {outcome?.benchmark} (biotech index). Many things move a stock; one {noun} is rarely
                 the reason.
               </Text>
             </>
           ) : null}
           {sourceUrl ? (
             <Text style={styles.link} onPress={() => Linking.openURL(sourceUrl)}>
-              Read the abstract on PubMed ↗
+              {isFiling ? "Read the filing on SEC EDGAR ↗" : "Read the abstract on PubMed ↗"}
             </Text>
           ) : null}
         </View>

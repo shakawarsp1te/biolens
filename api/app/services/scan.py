@@ -32,6 +32,7 @@ from typing import Any
 
 from app.services.company_store import get_company_store
 from app.services.discovery import run_discovery_pass
+from app.services.filing_impact import assess_filing_signals
 from app.services.filing_monitor import scan_company_for_new_filings
 from app.services.paper_impact import assess_paper_signals
 from app.services.paper_monitor import scan_company_for_new_papers
@@ -93,6 +94,10 @@ async def run_scan_pass(
                 all_signals = await assess_paper_signals(
                     company, all_signals, pubmed_client=pubmed_client
                 )
+            if filing_signals:
+                all_signals = await assess_filing_signals(
+                    company, all_signals, sec_client=sec_client
+                )
             if all_signals:
                 await store.add_signals(all_signals)
             await store.mark_scanned(company_id, scanned_at=_utc_now_iso())
@@ -101,20 +106,20 @@ async def run_scan_pass(
             new_filing_count += len(filing_signals)
             companies_scanned += 1
 
-        # Papers found before impact calls existed, or whose call failed
+        # Signals found before impact calls existed, or whose call failed
         # last pass, get another try here.
         companies_by_id = {c.get("id"): c for c in companies}
         try:
-            backlog = await store.list_unassessed_paper_signals()
+            backlog = await store.list_unassessed_signals()
             for company_id in {s["companyId"] for s in backlog}:
                 company = companies_by_id.get(company_id)
                 if company is None:
                     continue
                 batch = [s for s in backlog if s["companyId"] == company_id]
-                for signal in await assess_paper_signals(
-                    company, batch, pubmed_client=pubmed_client
-                ):
-                    if signal.get("impact") is not None:
+                batch = await assess_paper_signals(company, batch, pubmed_client=pubmed_client)
+                batch = await assess_filing_signals(company, batch, sec_client=sec_client)
+                for signal in batch:
+                    if signal.get("impact") is not None or signal.get("notAssessed"):
                         await store.update_signal(signal)
         except Exception:
             logger.exception("impact backfill failed during scan")
