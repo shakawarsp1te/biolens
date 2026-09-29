@@ -17,6 +17,7 @@ Source ID", the field PubMed indexes registered trial numbers under).
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -78,6 +79,58 @@ def build_drug_search_term(drug_name: str, aliases: list[str] | None = None) -> 
     if len(quoted) == 1:
         return quoted[0]
     return "(" + " OR ".join(quoted) + ")"
+
+
+# Pipeline drug names are written for people, not search engines: "KOMZIFTI
+# (ziftomenib)", "Darovasertib + crizotinib", "Biomarker-driven therapy
+# selection (includes apalutamide, niraparib/abiraterone, others)". Searched
+# verbatim, PubMed finds no exact phrase and silently falls back to looser
+# word matching -- one way off-target papers got in.
+_COMBO_SPLIT = re.compile(r"\s*(?:\+|/|,|\bwith\b|\band\b)\s*", re.I)
+_DESCRIPTIVE = re.compile(
+    r"\b(therapy|therapies|selection|includes|including|program|platform|biomarker|"
+    r"undisclosed|candidate|candidates|regimen|others|various|not specified)\b",
+    re.I,
+)
+# Company development codes: IBI310, RLY-2608, JANX007, ERAS-0015, XmAb819.
+_DEV_CODE = re.compile(r"^[A-Za-z]{2,}[- ]?\d{2,}[A-Za-z0-9-]*$")
+_MAX_NAME_WORDS = 3
+
+
+def drug_search_names(drug_name: str) -> list[str]:
+    """Search-ready names for one pipeline drug: brand and generic pulled
+    apart, combos reduced to the company's own drug (the first named, plus
+    any development code -- a standard partner drug like crizotinib would
+    pull in thousands of unrelated papers), descriptive phrases dropped.
+    [] when nothing in the name is a searchable drug name."""
+    if not drug_name or not drug_name.strip():
+        return []
+    inner = re.findall(r"\(([^)]*)\)", drug_name)
+    outer = re.sub(r"\([^)]*\)?", " ", drug_name)
+    names: list[str] = []
+    for index, part in enumerate(_COMBO_SPLIT.split(outer)):
+        part = part.strip(" -–")
+        if part and (index == 0 or _DEV_CODE.match(part)):
+            names.append(part)
+    for group in inner:
+        # A parenthetical is a single alternate name ("ziftomenib",
+        # "RLY-2608"), not a list ("includes apalutamide, niraparib, ...").
+        if not _COMBO_SPLIT.search(group):
+            names.append(group.strip())
+    cleaned: list[str] = []
+    for name in names:
+        if not name or _DESCRIPTIVE.search(name) or len(name.split()) > _MAX_NAME_WORDS:
+            continue
+        if len(name) < 3 or name.lower() in {n.lower() for n in cleaned}:
+            continue
+        cleaned.append(name)
+    return cleaned
+
+
+def build_pipeline_drug_term(names: list[str]) -> str:
+    """Title/abstract-only phrase search ([tiab]) for a pipeline drug's
+    names -- a mention in affiliations or MeSH indexing doesn't count."""
+    return " OR ".join(f'"{name}"[tiab]' for name in names)
 
 
 def build_target_indication_term(target: str, indication: str) -> str:
@@ -175,18 +228,28 @@ class PubMedClient:
         response.raise_for_status()
         return response
 
-    async def esearch(self, term: str, *, retmax: int = 10) -> list[str]:
-        cache_key = f"pubmed:esearch:{term}:{retmax}"
+    async def esearch(self, term: str, *, retmax: int = 10, sort: str | None = None) -> list[str]:
+        cache_key = f"pubmed:esearch:{term}:{retmax}:{sort or ''}"
         cached = await self._cache.get(cache_key)
         if cached is not None and time.time() - cached.fetched_at < _ESEARCH_CACHE_TTL_SECONDS:
             return cached.value["idlist"]
 
-        response = await self._get(
-            "/esearch.fcgi", {"db": "pubmed", "term": term, "retmode": "json", "retmax": retmax}
-        )
+        params: dict[str, Any] = {"db": "pubmed", "term": term, "retmode": "json", "retmax": retmax}
+        if sort:
+            params["sort"] = sort
+        response = await self._get("/esearch.fcgi", params)
         idlist = response.json().get("esearchresult", {}).get("idlist", [])
         await self._cache.set(cache_key, {"idlist": idlist})
         return idlist
+
+    async def search_pipeline_drug(self, names: list[str], *, retmax: int = 10) -> list[str]:
+        """PMIDs whose title or abstract names this drug (drug_search_names),
+        newest first: the scan keeps only the top `retmax`, and for a drug
+        with hundreds of papers (Innovent's sintilimab) a relevance order
+        could push a brand-new paper below the cut."""
+        if not names:
+            return []
+        return await self.esearch(build_pipeline_drug_term(names), retmax=retmax, sort="pub_date")
 
     async def esummary(self, pmids: list[str]) -> list[dict[str, Any]]:
         if not pmids:

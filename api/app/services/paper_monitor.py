@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.models.signal import SignalEventModel
-from app.services.pubmed import PubMedClient
+from app.services.pubmed import PubMedClient, build_pipeline_drug_term, drug_search_names
 from app.services.signal_store import SignalStore
 
 # Per-company, per-drug PubMed searches are already rate-limited inside
@@ -47,22 +47,35 @@ async def scan_company_for_new_papers(
     """Every new-since-last-scan PubMed paper across a company's real
     pipeline. Returns an empty list (not an error) when there's nothing new
     -- the normal, expected outcome most scans produce."""
-    drug_names = sorted(
-        {asset["drugName"] for asset in company.get("pipeline", []) if asset.get("drugName")}
+    searches = sorted(
+        {
+            tuple(names)
+            for asset in company.get("pipeline", [])
+            if (names := drug_search_names(asset.get("drugName", "")))
+        }
     )
-    if not drug_names:
+    if not searches:
         return []
+    query = " | ".join(build_pipeline_drug_term(list(names)) for names in searches)
 
     seen = await store.get_seen_pmids(company["id"])
-    is_first_scan = not await store.has_been_scanned(company["id"])
+    # A changed query (better search terms, or a pipeline edit) returns a
+    # different result set, and diffing it against the old one would report
+    # years of already-published papers as "new". So a changed query
+    # re-baselines silently, exactly like a company's first scan.
+    is_baseline = (
+        not await store.has_been_scanned(company["id"])
+        or await store.get_paper_query(company["id"]) != query
+    )
 
     all_pmids: set[str] = set()
-    for drug_name in drug_names:
-        pmids = await client.search_by_drug_name(drug_name, retmax=_RETMAX_PER_DRUG)
+    for names in searches:
+        pmids = await client.search_pipeline_drug(list(names), retmax=_RETMAX_PER_DRUG)
         all_pmids.update(pmids)
 
-    if is_first_scan:
-        await store.set_seen_pmids(company["id"], all_pmids)
+    if is_baseline:
+        await store.set_seen_pmids(company["id"], seen | all_pmids)
+        await store.set_paper_query(company["id"], query)
         return []
 
     new_pmids = all_pmids - seen

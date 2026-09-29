@@ -48,8 +48,35 @@ class SignalStore:
             return
         async with aiosqlite.connect(self._db_path) as db:
             await db.executescript(_SCHEMA)
+            # Added after the table existed; older databases get the column
+            # here rather than through a separate migration step.
+            cursor = await db.execute("PRAGMA table_info(scan_state)")
+            columns = {row[1] for row in await cursor.fetchall()}
+            if "paper_query" not in columns:
+                await db.execute("ALTER TABLE scan_state ADD COLUMN paper_query TEXT")
             await db.commit()
         self._initialized = True
+
+    async def get_paper_query(self, company_id: str) -> str | None:
+        """The PubMed search terms the last paper scan used for this
+        company -- see paper_monitor.py for why a change re-baselines."""
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "SELECT paper_query FROM scan_state WHERE company_id = ?", (company_id,)
+            )
+            row = await cursor.fetchone()
+        return row[0] if row is not None else None
+
+    async def set_paper_query(self, company_id: str, query: str) -> None:
+        await self._ensure_initialized()
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                "INSERT INTO scan_state (company_id, paper_query) VALUES (?, ?) "
+                "ON CONFLICT(company_id) DO UPDATE SET paper_query = excluded.paper_query",
+                (company_id, query),
+            )
+            await db.commit()
 
     async def _get_state_row(self, company_id: str) -> aiosqlite.Row | None:
         async with aiosqlite.connect(self._db_path) as db:

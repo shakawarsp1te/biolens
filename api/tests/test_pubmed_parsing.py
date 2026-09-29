@@ -6,9 +6,13 @@ against real captured E-utilities responses in tests/fixtures/.
 import json
 from pathlib import Path
 
+import pytest
+
 from app.services.pubmed import (
     build_drug_search_term,
+    build_pipeline_drug_term,
     build_target_indication_term,
+    drug_search_names,
     parse_abstracts_xml,
 )
 
@@ -96,3 +100,35 @@ def test_inline_markup_does_not_truncate_title_or_abstract():
     [article] = parse_abstracts_xml(xml)
     assert article["title"] == "Targeting KRAS G12C in NSCLC"
     assert article["abstract"] == "KRAS mutations are common. Response was 40% (p = 10-3)."
+
+
+# --- drug_search_names: real pipeline drug names seen in scan logs ---
+
+
+@pytest.mark.parametrize(
+    ("drug_name", "expected"),
+    [
+        ("KOMZIFTI (ziftomenib)", ["KOMZIFTI", "ziftomenib"]),
+        ("Zovegalisib (RLY-2608)", ["Zovegalisib", "RLY-2608"]),
+        ("Darovasertib + crizotinib", ["Darovasertib"]),
+        ("Teclistamab + Daratumumab", ["Teclistamab"]),
+        ("IBI310 + Sintilimab", ["IBI310"]),
+        ("Sintilimab +/- Ipilimumab N01", ["Sintilimab"]),
+        ("Tigulixostat (IBI128)", ["Tigulixostat", "IBI128"]),
+        ("Onvansertib", ["Onvansertib"]),
+        (
+            "Biomarker-driven therapy selection (includes apalutamide, niraparib/abiraterone, "
+            "others)",
+            [],
+        ),
+        ("", []),
+    ],
+)
+def test_drug_search_names_from_real_pipeline_entries(drug_name, expected):
+    assert drug_search_names(drug_name) == expected
+
+
+def test_pipeline_drug_term_is_title_abstract_only():
+    assert build_pipeline_drug_term(["KOMZIFTI", "ziftomenib"]) == (
+        '"KOMZIFTI"[tiab] OR "ziftomenib"[tiab]'
+    )

@@ -16,8 +16,8 @@ class FakePubMedClient:
         self._summaries_by_pmid = summaries_by_pmid
         self.esummary_calls: list[list[str]] = []
 
-    async def search_by_drug_name(self, drug_name, *, retmax=15):
-        return self._pmids_by_drug.get(drug_name, [])
+    async def search_pipeline_drug(self, names, *, retmax=15):
+        return [pmid for name in names for pmid in self._pmids_by_drug.get(name, [])]
 
     async def esummary(self, pmids):
         self.esummary_calls.append(list(pmids))
@@ -34,6 +34,15 @@ def _company(pipeline_drug_names: list[str], company_id="test-co") -> dict:
 @pytest.fixture
 def store(tmp_path):
     return SignalStore(db_path=str(tmp_path / "test_signals.sqlite3"))
+
+
+async def _baseline(store, company, seen=()):
+    """A completed first scan: baseline PMIDs and the query recorded, and
+    the company marked scanned (what scan.py does after every company)."""
+    empty = FakePubMedClient(pmids_by_drug={}, summaries_by_pmid={})
+    await scan_company_for_new_papers(company, client=empty, store=store)
+    await store.set_seen_pmids(company["id"], set(seen))
+    await store.mark_scanned(company["id"], scanned_at="2026-08-01T00:00:00+00:00")
 
 
 @pytest.mark.asyncio
@@ -60,7 +69,7 @@ async def test_paper_appearing_after_the_baseline_is_reported_and_marked_seen(st
     # empty seen-set alone is ambiguous with "never scanned" and
     # deliberately not used as that signal (see signal_store.py).
     company = _company(["Onvansertib"])
-    await store.mark_scanned("test-co", scanned_at="2026-08-01T00:00:00+00:00")
+    await _baseline(store, company)
 
     client = FakePubMedClient(
         pmids_by_drug={"Onvansertib": ["111"]},
@@ -90,8 +99,8 @@ async def test_paper_appearing_after_the_baseline_is_reported_and_marked_seen(st
 
 @pytest.mark.asyncio
 async def test_only_the_new_pmid_is_summarized_not_the_whole_set(store):
-    await store.set_seen_pmids("test-co", {"111"})
-    await store.mark_scanned("test-co", scanned_at="2026-08-01T00:00:00+00:00")
+    company = _company(["Onvansertib"])
+    await _baseline(store, company, seen={"111"})
     client = FakePubMedClient(
         pmids_by_drug={"Onvansertib": ["111", "222"]},
         summaries_by_pmid={
@@ -99,7 +108,6 @@ async def test_only_the_new_pmid_is_summarized_not_the_whole_set(store):
             "222": {"uid": "222", "title": "New paper"},
         },
     )
-    company = _company(["Onvansertib"])
 
     signals = await scan_company_for_new_papers(company, client=client, store=store)
 
@@ -109,7 +117,7 @@ async def test_only_the_new_pmid_is_summarized_not_the_whole_set(store):
 
 @pytest.mark.asyncio
 async def test_searches_every_drug_in_the_pipeline(store):
-    await store.mark_scanned("test-co", scanned_at="2026-08-01T00:00:00+00:00")
+    await _baseline(store, _company(["DrugA", "DrugB"]))
     client = FakePubMedClient(
         pmids_by_drug={"DrugA": ["1"], "DrugB": ["2"]},
         summaries_by_pmid={
@@ -132,3 +140,29 @@ async def test_no_pipeline_drugs_returns_empty_without_calling_pubmed(store):
     signals = await scan_company_for_new_papers(company, client=client, store=store)
 
     assert signals == []
+
+
+@pytest.mark.asyncio
+async def test_changed_search_terms_rebaseline_instead_of_flooding_old_papers(store):
+    # Better search terms find papers the old query never matched --
+    # years-old ones included. Those mustn't surface as "new".
+    await _baseline(store, _company(["Onvansertib"]))
+    widened = _company(["Onvansertib (PCM-075)"])
+    client = FakePubMedClient(
+        pmids_by_drug={"Onvansertib": ["111"], "PCM-075": ["900", "901"]},
+        summaries_by_pmid={p: {"uid": p, "title": p} for p in ("111", "900", "901", "902")},
+    )
+
+    assert await scan_company_for_new_papers(widened, client=client, store=store) == []
+    assert await store.get_seen_pmids("test-co") >= {"111", "900", "901"}
+
+    client._pmids_by_drug["PCM-075"].append("902")
+    signals = await scan_company_for_new_papers(widened, client=client, store=store)
+    assert [s.id for s in signals] == ["paper:902"]
+
+
+@pytest.mark.asyncio
+async def test_descriptive_pipeline_entries_are_not_searched(store):
+    client = FakePubMedClient(pmids_by_drug={}, summaries_by_pmid={})
+    company = _company(["Biomarker-driven therapy selection (includes apalutamide, others)"])
+    assert await scan_company_for_new_papers(company, client=client, store=store) == []
