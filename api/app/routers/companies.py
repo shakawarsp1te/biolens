@@ -71,8 +71,18 @@ async def get_company_catalysts(company_id: str) -> list[dict]:
     company = await get_company_store().get_company(company_id)
     if company is None:
         raise HTTPException(status_code=404, detail=f"No company found for id '{company_id}'.")
+    skipped: list[str] = []
     async with ClinicalTrialsClient() as client:
-        events = await get_catalysts_for_company(company, client=client)
+        events = await get_catalysts_for_company(company, client=client, skipped=skipped)
+    if skipped:
+        # A calendar missing some trials would read as complete. Trials that
+        # did load are cached, so a retry shortly after is fast.
+        raise HTTPException(
+            status_code=503,
+            detail=f"ClinicalTrials.gov didn't return {len(skipped)} of this company's trials "
+            "just now (rate limited). Try again in a minute.",
+            headers={"Retry-After": "20"},
+        )
     return [event.model_dump() for event in events]
 
 

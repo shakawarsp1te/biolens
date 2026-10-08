@@ -64,10 +64,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Loosened for local Expo Go development. Tighten before any public deploy.
+# CORS_ALLOW_ORIGINS (see app/core/config.py) -- "*" for local development,
+# the website's own URL in production.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_settings().cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

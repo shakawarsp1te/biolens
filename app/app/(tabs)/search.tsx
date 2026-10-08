@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text, TextInput } from "../../components/ui/Text";
 import ListContainer from "../../components/ListContainer";
 import PaperResultRow from "../../components/PaperResultRow";
 import ScreenShell from "../../components/ScreenShell";
@@ -57,6 +59,9 @@ export default function SearchScreen() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const blurTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // `?q=` -- set by the desktop top bar's search box, so "search trials and
+  // papers for X" lands here already running.
+  const { q } = useLocalSearchParams<{ q?: string }>();
 
   function handleFocus() {
     if (blurTimeout.current) clearTimeout(blurTimeout.current);
@@ -106,6 +111,19 @@ export default function SearchScreen() {
 
     setState({ status: "success", trials: Array.from(trialsById.values()), papers });
   }
+
+  // A new `?q=` replaces whatever's in the box (adjusted during render, so
+  // the input never shows the stale query for a frame) and runs the search.
+  const [appliedQ, setAppliedQ] = useState<string | undefined>(undefined);
+  if (q && q !== appliedQ) {
+    setAppliedQ(q);
+    setQuery(q);
+  }
+  useEffect(() => {
+    if (q) runSearch(q);
+    // Re-run only when the URL's query changes, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   return (
     <ScreenShell
@@ -278,7 +296,7 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     ...typography.caption,
-    color: "#04070D",
+    color: colors.onAccent,
     fontWeight: "700",
   },
   input: {

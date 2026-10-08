@@ -6,9 +6,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "../components/ui/Text";
 import FilterPill from "../components/FilterPill";
 import ListContainer from "../components/ListContainer";
 import PriceChart from "../components/PriceChart";
@@ -87,7 +87,13 @@ export default function StockDetailScreen() {
             <Text style={styles.companyName}>{quote.company_name}</Text>
           ) : null}
         </View>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.closeButton}>
+        <Pressable
+          // Opened straight from a shared link there's nothing to go back
+          // to -- close to Home instead.
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+          hitSlop={12}
+          style={styles.closeButton}
+        >
           <Text style={styles.closeButtonText}>✕</Text>
         </Pressable>
       </View>

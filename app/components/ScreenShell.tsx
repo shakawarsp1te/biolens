@@ -1,6 +1,8 @@
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
+import { useIsWideWeb } from "../utils/layout";
 import Wordmark from "./Wordmark";
 
 type Props = {
@@ -19,11 +21,18 @@ type Props = {
  * so the app already feels navigable before any backend integration exists.
  */
 export default function ScreenShell({ title, subtitle, brand, children }: Props) {
+  // On desktop the sidebar already carries the wordmark — showing it again
+  // above the page title would just repeat it side by side.
+  const isWide = useIsWideWeb();
+  const showWordmark = brand && !isWide;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}
+      >
         <View style={styles.header}>
-          {brand ? (
+          {showWordmark ? (
             <View style={styles.wordmarkRow}>
               <Wordmark size="sm" />
             </View>
@@ -42,13 +51,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // A reading column: these pages are mostly prose and lists, which get
+  // hard to read past ~960px. Research tables use components/ui/Page.
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl * 2,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+    maxWidth: 960,
+    alignSelf: "center",
+  },
+  scrollContentWide: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
+    gap: 2,
   },
   wordmarkRow: {
     marginBottom: spacing.lg,
@@ -58,8 +77,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   subtitle: {
-    ...typography.body,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
 });

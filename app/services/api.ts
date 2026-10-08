@@ -13,6 +13,14 @@ import { CatalystEvent, CompanyRecord, SignalEvent, TrackRecord } from "../types
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+// Dev builds get the setup hint; the deployed website gets something a
+// visitor can act on (the free-tier API sleeps when idle and takes up to a
+// minute to wake).
+const UNREACHABLE_MESSAGE = __DEV__
+  ? "Could not reach the BioLens API. Make sure the backend is running locally " +
+    "(cd api && uvicorn app.main:app --reload) and EXPO_PUBLIC_API_BASE_URL points at it."
+  : "BioLens couldn't reach its server — it may be waking up. Please try again in a minute.";
+
 export class ApiError extends Error {
   status?: number;
   /** Populated only when the backend's `detail` was a list of strings (e.g.
@@ -53,10 +61,7 @@ async function apiGet<T>(
   try {
     response = await fetch(url, { headers });
   } catch {
-    throw new ApiError(
-      "Could not reach the BioLens API. Make sure the backend is running locally " +
-        "(cd api && uvicorn app.main:app --reload) and EXPO_PUBLIC_API_BASE_URL points at it.",
-    );
+    throw new ApiError(UNREACHABLE_MESSAGE);
   }
   if (!response.ok) {
     let parsed: { message?: string; violations?: string[] } = {};
@@ -88,10 +93,7 @@ async function apiSend<T>(
       body: JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(
-      "Could not reach the BioLens API. Make sure the backend is running locally " +
-        "(cd api && uvicorn app.main:app --reload) and EXPO_PUBLIC_API_BASE_URL points at it.",
-    );
+    throw new ApiError(UNREACHABLE_MESSAGE);
   }
   if (!response.ok) {
     let parsed: { message?: string; violations?: string[] } = {};
@@ -113,7 +115,11 @@ function apiPost<T>(path: string, body: unknown, headers: Record<string, string>
   return apiSend<T>("POST", path, body, headers);
 }
 
-function apiDelete<T>(path: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
+function apiDelete<T>(
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Promise<T> {
   return apiSend<T>("DELETE", path, body, headers);
 }
 
@@ -313,6 +319,36 @@ export interface Valuation {
   evToRevenue: number | null;
   netCashToMarketCap: number | null;
   notes: string[];
+}
+
+/** One fiscal year of income-statement figures from 10-K filings
+ * (api/app/services/valuation.py's annual_history). Null fields are lines
+ * the company didn't report that year — never zero-filled. */
+export interface AnnualFinancials {
+  year: number;
+  periodEnd: string;
+  revenue: number | null;
+  researchAndDevelopment: number | null;
+  operatingIncome: number | null;
+  netIncome: number | null;
+}
+
+export interface FinancialHistory {
+  ticker: string;
+  source: string;
+  years: AnnualFinancials[];
+}
+
+/** Null on a 404: no US-GAAP annual figures in the company's filings. */
+export async function getFinancialHistory(ticker: string): Promise<FinancialHistory | null> {
+  try {
+    return await apiGet<FinancialHistory>(
+      `/market/financial-history/${encodeURIComponent(ticker)}`,
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
 }
 
 /** Null on a 404: a foreign filer, a non-USD listing, or missing data —

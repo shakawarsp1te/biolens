@@ -1,5 +1,6 @@
 import React from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
 import { ImpactDirection, PaperImpact, SignalOutcome } from "../types/domain";
 

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
 
 /**

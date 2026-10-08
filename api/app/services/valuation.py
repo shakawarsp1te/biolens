@@ -24,6 +24,7 @@ Scope limits, stated rather than papered over:
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 from pydantic import BaseModel
@@ -238,3 +239,84 @@ def compute_valuation(
         result.ttmRnD, result.ttmRnDThrough = rnd
 
     return result
+
+
+_OPERATING_INCOME_TAGS = ["OperatingIncomeLoss"]
+_NET_INCOME_TAGS = ["NetIncomeLoss", "ProfitLoss"]
+
+
+class AnnualFinancials(BaseModel):
+    """One fiscal year of income-statement figures (`year` is the year the
+    fiscal period ends in). None means the
+    company didn't report that line for that year -- never zero-filled."""
+
+    year: int
+    periodEnd: str
+    revenue: float | None = None
+    researchAndDevelopment: float | None = None
+    operatingIncome: float | None = None
+    netIncome: float | None = None
+
+
+def _annual_by_year(
+    facts: dict[str, Any], tags: list[str], prefer_largest: bool = False
+) -> dict[int, tuple[float, str]]:
+    """{fiscal year: (value, period end)} from full-year periods in 10-K
+    filings, keyed by the year the period ends in. Two things this avoids:
+
+    - SEC's calendar-year `frame` labels can land on a proxy statement's
+      pay-vs-performance table instead of the 10-K -- Cardiff Oncology's
+      CY2023 NetIncomeLoss frame is a DEF 14A figure in thousands (-41,441
+      against a real -$41.4M) -- so frames aren't used here.
+    - A 10-K repeats prior years as comparatives; the latest-filed figure
+      wins, so restatements are picked up.
+
+    Tags are tried in order, falling back per year (companies switch tags
+    over time). With `prefer_largest`, the largest value across tags wins
+    instead: for revenue, the total ("Revenues": Pfizer's $101.2B for 2022)
+    is never smaller than a component (contract revenue: $91.8B)."""
+    per_tag: list[dict[int, tuple[float, str, str]]] = []
+    for tag in tags:
+        latest: dict[int, tuple[float, str, str]] = {}
+        for entry in _usd(facts, tag):
+            if not str(entry.get("form", "")).startswith("10-K") or not entry.get("start"):
+                continue
+            days = (date.fromisoformat(entry["end"]) - date.fromisoformat(entry["start"])).days
+            if not 350 <= days <= 380:
+                continue
+            year = int(entry["end"][:4])
+            filed = entry.get("filed", "")
+            if year not in latest or filed > latest[year][2]:
+                latest[year] = (float(entry["val"]), entry["end"], filed)
+        per_tag.append(latest)
+
+    years: dict[int, tuple[float, str]] = {}
+    for latest in per_tag:
+        for year, (value, end, _) in latest.items():
+            if year not in years or (prefer_largest and value > years[year][0]):
+                years[year] = (value, end)
+    return years
+
+
+def annual_history(facts: dict[str, Any], max_years: int = 5) -> list[AnnualFinancials]:
+    """The latest `max_years` fiscal years of revenue, R&D, operating
+    income and net income, oldest first, straight from the filings. Empty
+    for a company with no US-GAAP annual data (e.g. a foreign IFRS filer)."""
+    series = {
+        "revenue": _annual_by_year(facts, _REVENUE_TAGS, prefer_largest=True),
+        "researchAndDevelopment": _annual_by_year(facts, _RND_TAGS),
+        "operatingIncome": _annual_by_year(facts, _OPERATING_INCOME_TAGS),
+        "netIncome": _annual_by_year(facts, _NET_INCOME_TAGS),
+    }
+    all_years = sorted({year for values in series.values() for year in values})[-max_years:]
+    history = []
+    for year in all_years:
+        ends = [values[year][1] for values in series.values() if year in values]
+        history.append(
+            AnnualFinancials(
+                year=year,
+                periodEnd=max(ends),
+                **{name: values[year][0] for name, values in series.items() if year in values},
+            )
+        )
+    return history

@@ -145,3 +145,33 @@ async def test_repeated_search_hits_cache_not_network(search_transport):
         await client.search_by_sponsor("Janux Therapeutics")
         await client.search_by_sponsor("Janux Therapeutics")
     assert search_transport.request_count == 1
+
+
+@pytest.mark.asyncio
+async def test_rate_limited_request_is_retried(monkeypatch):
+    # CT.gov 429s bursts; a retry after backoff should succeed rather than
+    # failing the caller's whole request.
+    monkeypatch.setattr("app.services.clinicaltrials._BACKOFF_SECONDS", 0)
+    fixture = load_fixture("ctgov_study_NCT05519449.json")
+    responses = [httpx.Response(429), httpx.Response(200, json=fixture)]
+    transport = RequestCountingTransport(lambda request: responses.pop(0))
+    http = httpx.AsyncClient(base_url="https://clinicaltrials.gov/api/v2", transport=transport)
+
+    async with ClinicalTrialsClient(http_client=http, cache=InMemoryCacheStore()) as client:
+        study = await client.get_study("NCT05519449")
+
+    assert study is not None
+    assert transport.request_count == 2
+
+
+@pytest.mark.asyncio
+async def test_persistent_rate_limit_gives_up_after_max_attempts(monkeypatch):
+    monkeypatch.setattr("app.services.clinicaltrials._BACKOFF_SECONDS", 0)
+    transport = RequestCountingTransport(lambda request: httpx.Response(429))
+    http = httpx.AsyncClient(base_url="https://clinicaltrials.gov/api/v2", transport=transport)
+
+    async with ClinicalTrialsClient(http_client=http, cache=InMemoryCacheStore()) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.get_study("NCT05519449")
+
+    assert transport.request_count == 3

@@ -21,11 +21,20 @@ CT.gov-only pass.
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import Any
 
+import httpx
+
 from app.models.catalyst import CatalystEventModel
-from app.services.clinicaltrials import ClinicalTrialsClient, parse_study_summary
+from app.services.clinicaltrials import (
+    ClinicalTrialsClient,
+    InvalidNctIdError,
+    parse_study_summary,
+)
+
+logger = logging.getLogger(__name__)
 
 # How far in the past an ACTUAL (already-reached) completion date still
 # counts as a fresh, worth-surfacing readout rather than old history a user
@@ -100,12 +109,16 @@ async def get_catalysts_for_company(
     *,
     client: ClinicalTrialsClient,
     today: date | None = None,
+    skipped: list[str] | None = None,
 ) -> list[CatalystEventModel]:
     """Every upcoming (or very recently reached) trial-completion catalyst
     across a company's real pipeline, nearest first. `company` is the same
     dict shape company_store.get_company returns. Silently skips a trial ID
     CT.gov no longer has a record for -- an absent catalyst is a normal
-    outcome here, never an error."""
+    outcome here, never an error. A trial that couldn't be fetched at all
+    (network error, rate limit) is also skipped, and its ID appended to
+    `skipped` when given -- so the caller can refuse to present a silently
+    incomplete calendar."""
     today = today or date.today()
     seen_nct_ids: set[str] = set()
     events: list[CatalystEventModel] = []
@@ -117,7 +130,15 @@ async def get_catalysts_for_company(
                 continue
             seen_nct_ids.add(nct_id)
 
-            raw_study = await client.get_study(nct_id)
+            try:
+                raw_study = await client.get_study(nct_id)
+            except (httpx.HTTPError, InvalidNctIdError) as exc:
+                # One unreachable or rejected trial shouldn't sink the
+                # company's whole calendar; it's just absent this time.
+                logger.warning("catalysts: skipping %s (%s)", nct_id, exc)
+                if skipped is not None and not isinstance(exc, InvalidNctIdError):
+                    skipped.append(nct_id)
+                continue
             if raw_study is None:
                 continue
             summary = parse_study_summary(raw_study)

@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, radii, typography } from "../constants/theme";
 
 // A small fixed palette so the same company always gets the same tint
@@ -28,7 +29,12 @@ function initialsFor(name: string): string {
 export default function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const backgroundColor = tintFor(name);
   return (
-    <View style={[styles.circle, { width: size, height: size, borderRadius: radii.pill, backgroundColor }]}>
+    <View
+      style={[
+        styles.circle,
+        { width: size, height: size, borderRadius: radii.pill, backgroundColor },
+      ]}
+    >
       <Text style={[styles.initials, { fontSize: size * 0.38 }]}>{initialsFor(name)}</Text>
     </View>
   );

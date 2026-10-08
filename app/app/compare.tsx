@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../components/ui/Text";
 import FilterPill from "../components/FilterPill";
 import ScreenShell from "../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../constants/theme";
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   emphasizedValue: {
     ...typography.monoLarge,
     fontSize: 20,
-    color: colors.accent,
+    color: colors.textPrimary,
   },
   footnote: {
     ...typography.caption,
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
   },
   exploreButtonText: {
     ...typography.caption,
-    color: "#04070D",
+    color: colors.onAccent,
     fontWeight: "700",
   },
 });

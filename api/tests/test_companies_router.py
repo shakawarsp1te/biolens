@@ -146,7 +146,7 @@ def test_catalysts_returns_events_for_an_existing_company(monkeypatch):
         assert company_id == "co-1"
         return {"id": "co-1", "name": "Test Co", "pipeline": []}
 
-    async def fake_get_catalysts_for_company(company, *, client):
+    async def fake_get_catalysts_for_company(company, *, client, skipped=None):
         assert company["id"] == "co-1"
         from app.models.catalyst import CatalystEventModel
 
@@ -180,11 +180,32 @@ def test_catalysts_returns_events_for_an_existing_company(monkeypatch):
     assert body[0]["expectedDate"] == "2027-01-01"
 
 
+def test_catalysts_503_when_some_trials_could_not_be_fetched(monkeypatch):
+    # A partially loaded calendar would read as complete, so it's refused.
+    async def fake_get_company(self, company_id):
+        return {"id": "co-1", "pipeline": []}
+
+    async def fake_get_catalysts_for_company(company, *, client, skipped=None):
+        skipped.append("NCT429")
+        return []
+
+    monkeypatch.setattr(
+        companies_router_module.get_company_store().__class__, "get_company", fake_get_company
+    )
+    monkeypatch.setattr(
+        companies_router_module, "get_catalysts_for_company", fake_get_catalysts_for_company
+    )
+
+    response = client.get("/companies/co-1/catalysts")
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "20"
+
+
 def test_catalysts_returns_empty_list_when_none_found(monkeypatch):
     async def fake_get_company(self, company_id):
         return {"id": "co-1", "pipeline": []}
 
-    async def fake_get_catalysts_for_company(company, *, client):
+    async def fake_get_catalysts_for_company(company, *, client, skipped=None):
         return []
 
     monkeypatch.setattr(

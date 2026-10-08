@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../../components/ui/Text";
 import Avatar from "../../components/Avatar";
 import ListContainer from "../../components/ListContainer";
 import ScreenShell from "../../components/ScreenShell";
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...typography.body,
     fontWeight: "700",
-    color: "#04070D",
+    color: colors.onAccent,
   },
   secondaryButton: {
     backgroundColor: colors.surface,

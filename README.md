@@ -12,7 +12,12 @@ BioLens joins real ClinicalTrials.gov, PubMed, and SEC EDGAR data into one view 
 
 ## What it actually does
 
-- **Discover** — oncology companies, from emerging biotechs to large pharma, ranked by a deterministic *Frontier Score* (research activity, explicitly not "investment attractiveness"), with filters for stage, modality, target, and therapeutic area.
+BioLens is laid out as a research terminal: a persistent sidebar, a global company/ticker search (press `/`), and dense, sourced tables and panels instead of a feed of cards.
+
+- **Company dashboards** — a fixed header (price, market cap, enterprise value, cash, runway) over six views: Overview, Financials (five years of revenue, R&D and income from 10-K filings), Clinical Pipeline, Commercial Analysis, Research, and Catalysts. The active view lives in the URL, so it can be linked to.
+- **Company Explorer** — a screener over every tracked company: market cap, revenue, cash, runway, pipeline size and highest phase, with search, filters, sortable columns and a column picker.
+- **Clinical Pipelines, Catalyst Calendar, Financial Analysis, Research Reports** — cross-company views of every drug, every disclosed trial date, every balance sheet, and every new paper or filing BioLens has made a call on.
+- **Missing data is labeled, never filled in** — "Not reported", "n/a", "No ticker" in words, and a source line under every panel.
 - **Auto-discovery pipeline** — finds real, newly-active, industry-sponsored trials on ClinicalTrials.gov, folds subsidiaries into their publicly traded parent (Janssen → Johnson & Johnson, JNJ), and drafts a new company profile grounded strictly in that company's own lead-sponsored trials — a large company is represented by its most advanced recent trials, and its profile says so. Add a specific company with `python -m scripts.run_discovery --sponsor "Pfizer"`. Every AI-drafted profile is flagged `pending review`, never presented as verified.
 - **Company profiles** — a real pipeline (drug → target → modality → trial → phase), a two-sided thesis map ("what has to go right" / "what could go wrong" — deliberately monochrome, never green/red), and a live stock quote where one exists.
 - **Cash runway** — cash plus marketable securities against quarterly operating burn, computed from a company's own SEC filings (XBRL, no LLM involved), the same "BioLens calculated, never invented" discipline as everything else.
@@ -39,16 +44,16 @@ Full rule set: [`docs/PLAN.md`](docs/PLAN.md) §3. Original product spec: [`docs
 
 | | |
 |---|---|
-| Mobile | React Native + Expo Router + TypeScript |
+| Web + mobile | React Native + Expo Router + TypeScript — one codebase ships as a website (desktop sidebar layout, phone layout under 900px) and as iOS/Android apps |
 | Backend | FastAPI (Python) |
 | Data | SQLite (interim store — see `docs/CHECKLIST.md` for the Postgres migration note) |
 | AI | Anthropic Claude, behind a provider-agnostic `LLMProvider` abstraction — swapping vendors is a config change, not a rewrite |
 | Real external data | ClinicalTrials.gov, PubMed, SEC EDGAR (XBRL), Yahoo Finance — all free, official, no scraping |
-| Design | A from-scratch fintech-native design system (no default AI-generated-app tells: no Inter font, no purple gradients, no uppercase eyebrow labels) |
+| Design | A from-scratch research-terminal design system: charcoal/navy surfaces, IBM Plex Sans with tabular figures, 2-4px radii, teal reserved for interface chrome (never for data, so nothing reads as "buy"), and reusable Panel / DataTable / chart components in `app/components/ui/` |
 
 ```
 biolens/
-├── app/     Expo (React Native + TypeScript) mobile app — also builds to a static web app
+├── app/     Expo (React Native + TypeScript) app — the website and the mobile app
 ├── api/     FastAPI backend
 ├── docs/    Product brief, build plan, and a running checklist of everything shipped
 ├── render.yaml   One-click Render deploy config for the API
@@ -83,9 +88,12 @@ npm start        # scan the QR code with Expo Go, press i for iOS Simulator, or 
 ## Deploying your own copy
 
 1. **Backend → Render.** [render.com](https://render.com) → New → Blueprint → connect this repo. Render reads `render.yaml` and asks for a few secrets (an Anthropic API key at minimum). The free tier works for a demo, but read "Scans without your laptop" below first: without a persistent disk, history resets on every deploy.
-2. **Web app → Vercel.** [vercel.com](https://vercel.com) → New Project → import this repo → set **Root Directory** to `app`. Add an `EXPO_PUBLIC_API_BASE_URL` environment variable pointing at your Render URL, then deploy.
+2. **Website → Vercel.** [vercel.com](https://vercel.com) → Add New → Project → import this repo → set **Root Directory** to `app`. Vercel picks up the build settings from `app/vercel.json`. Add one environment variable, `EXPO_PUBLIC_API_BASE_URL` = your Render URL (e.g. `https://biolens-api.onrender.com`, no trailing slash), then deploy. It's baked in at build time, so redeploy after changing it.
+3. **Lock the API to the website.** In Render → biolens-api → Environment, set `CORS_ALLOW_ORIGINS` to your Vercel URL (e.g. `https://biolens.vercel.app`; comma-separate several, such as a custom domain). Until then it can stay `*`.
 
-Both have generous free tiers and no credit card required to start.
+Both have free tiers with no credit card required to start. On Render's free tier the API sleeps after ~15 minutes idle, so the first visit after a quiet spell takes up to a minute to load; a paid instance (see below) stays awake.
+
+To check the production website build locally: `cd app && npx expo export --platform web` writes it to `app/dist/`.
 
 ## Scans without your laptop
 

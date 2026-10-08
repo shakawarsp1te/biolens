@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text, TextInput } from "../../components/ui/Text";
 import Callout from "../../components/Callout";
 import PasswordStrengthMeter from "../../components/PasswordStrengthMeter";
 import ScreenShell from "../../components/ScreenShell";
@@ -9,7 +10,8 @@ import { useAuth } from "../../context/AuthContext";
 import { ApiError } from "../../services/api";
 import { isPasswordValid } from "../../utils/passwordPolicy";
 
-type ScreenState = { status: "form" } | { status: "submitting" } | { status: "error"; message: string };
+type ScreenState =
+  { status: "form" } | { status: "submitting" } | { status: "error"; message: string };
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -134,6 +136,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...typography.body,
     fontWeight: "700",
-    color: "#04070D",
+    color: colors.onAccent,
   },
 });

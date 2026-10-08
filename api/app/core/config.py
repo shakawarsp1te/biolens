@@ -47,6 +47,16 @@ class Settings(BaseSettings):
     # opened directly in whatever browser the user's email client hands off
     # to, not deep-linked into the Expo app at this stage.
     api_public_base_url: str = "http://localhost:8000"
+    # Comma-separated browser origins allowed to call this API (CORS) --
+    # i.e. where the BioLens website is hosted, e.g.
+    # "https://biolens-web.onrender.com". "*" (the default) allows any
+    # origin, which local Expo/web development needs. Native apps don't
+    # send an Origin header, so this never affects the mobile app.
+    cors_allow_origins: str = "*"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip().rstrip("/") for o in self.cors_allow_origins.split(",") if o.strip()]
 
     # Email delivery (api/app/services/email.py) — mirrors the LLMProvider
     # pattern: ConsoleEmailProvider (logs the email, including the

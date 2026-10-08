@@ -7,6 +7,7 @@ event-construction logic without any network access.
 
 from datetime import date
 
+import httpx
 import pytest
 
 from app.services.catalysts import get_catalysts_for_company
@@ -189,6 +190,39 @@ async def test_missing_study_is_skipped_not_an_error():
     events = await get_catalysts_for_company(company, client=client, today=date(2026, 8, 30))
 
     assert events == []
+
+
+@pytest.mark.asyncio
+async def test_unreachable_study_is_skipped_and_the_rest_still_return():
+    # CT.gov rate-limited one lookup: that trial drops out, the company's
+    # other catalysts still come back.
+    class FlakyClient(FakeClinicalTrialsClient):
+        async def get_study(self, nct_id: str):
+            if nct_id == "NCT429":
+                request = httpx.Request("GET", "https://clinicaltrials.gov")
+                raise httpx.HTTPStatusError(
+                    "429", request=request, response=httpx.Response(429, request=request)
+                )
+            return await super().get_study(nct_id)
+
+    client = FlakyClient(
+        {
+            "NCT200": _study(
+                nct_id="NCT200",
+                primary_completion_date="2027-03-31",
+                primary_completion_date_type="ESTIMATED",
+            )
+        }
+    )
+    company = _company([{"drugId": "drug-1", "trialIds": ["NCT429", "NCT200"]}])
+
+    skipped: list[str] = []
+    events = await get_catalysts_for_company(
+        company, client=client, today=date(2026, 8, 30), skipped=skipped
+    )
+
+    assert [e.nctId for e in events] == ["NCT200"]
+    assert skipped == ["NCT429"]
 
 
 @pytest.mark.asyncio

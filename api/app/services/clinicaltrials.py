@@ -11,6 +11,7 @@ required; this is a public API.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -109,6 +110,31 @@ def study_mentions_intervention(raw_study: dict[str, Any], drug_name: str) -> bo
     return needle in haystack
 
 
+# CT.gov rate-limits bursts (HTTP 429). Cross-company pages (the catalyst
+# calendar, the pipelines view) ask for every company's trials at once, so
+# requests from this process are capped and a 429 is retried with backoff
+# instead of failing the caller's whole request.
+_MAX_CONCURRENT_REQUESTS = 4
+_MAX_ATTEMPTS = 3
+_BACKOFF_SECONDS = 1.0
+_request_slots: asyncio.Semaphore | None = None
+
+
+def _slots() -> asyncio.Semaphore:
+    # Created lazily so it binds to the running event loop.
+    global _request_slots
+    if _request_slots is None:
+        _request_slots = asyncio.Semaphore(_MAX_CONCURRENT_REQUESTS)
+    return _request_slots
+
+
+def _retry_delay(response: httpx.Response, attempt: int) -> float:
+    retry_after = response.headers.get("Retry-After", "")
+    if retry_after.isdigit():
+        return min(float(retry_after), 10.0)
+    return _BACKOFF_SECONDS * 2**attempt
+
+
 class InvalidNctIdError(ValueError):
     """Raised when CT.gov rejects an NCT ID as malformed (HTTP 400) — a
     caller error, distinct from a well-formed ID that just doesn't exist
@@ -136,6 +162,19 @@ class ClinicalTrialsClient:
         if self._owns_client and self._http_client is not None:
             await self._http_client.aclose()
 
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> httpx.Response:
+        """GET with the process-wide concurrency cap and 429 retries (see
+        _MAX_CONCURRENT_REQUESTS). Returns the last response; callers still
+        decide what its status means."""
+        assert self._http_client is not None, "use `async with ClinicalTrialsClient() as client:`"
+        for attempt in range(_MAX_ATTEMPTS):
+            async with _slots():
+                response = await self._http_client.get(path, params=params)
+            if response.status_code != 429 or attempt == _MAX_ATTEMPTS - 1:
+                return response
+            await asyncio.sleep(_retry_delay(response, attempt))
+        return response
+
     async def get_study(self, nct_id: str) -> dict[str, Any] | None:
         """NCT ID lookup. Returns the raw study payload, None if the ID is
         well-formed but no study exists (404), or raises InvalidNctIdError if
@@ -145,8 +184,7 @@ class ClinicalTrialsClient:
         if cached is not None:
             return cached.value
 
-        assert self._http_client is not None, "use `async with ClinicalTrialsClient() as client:`"
-        response = await self._http_client.get(f"/studies/{nct_id}")
+        response = await self._get(f"/studies/{nct_id}")
         if response.status_code == 400:
             raise InvalidNctIdError(f"'{nct_id}' is not a validly formatted NCT ID")
         if response.status_code == 404:
@@ -180,8 +218,7 @@ class ClinicalTrialsClient:
         if cached is not None:
             return cached.value.get("studies", [])
 
-        assert self._http_client is not None, "use `async with ClinicalTrialsClient() as client:`"
-        response = await self._http_client.get(
+        response = await self._get(
             "/studies",
             params={
                 query_key: query_value,
