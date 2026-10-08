@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text, TextInput } from "../../components/ui/Text";
 import Callout from "../../components/Callout";
 import PasswordStrengthMeter from "../../components/PasswordStrengthMeter";
 import ScreenShell from "../../components/ScreenShell";
@@ -54,7 +55,10 @@ export default function SignUpScreen() {
       ? `${API_BASE_URL}/auth/verify?token=${state.devVerificationToken}`
       : null;
     return (
-      <ScreenShell title="Check your email" subtitle={`We sent a verification link to ${state.email}.`}>
+      <ScreenShell
+        title="Check your email"
+        subtitle={`We sent a verification link to ${state.email}.`}
+      >
         {verifyUrl ? (
           <View style={styles.devBox}>
             <Text style={styles.devBoxTitle}>Development mode</Text>

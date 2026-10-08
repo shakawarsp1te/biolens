@@ -2,6 +2,7 @@
 guards that refuse to compute a wrong number (foreign filers, non-USD)."""
 
 from app.services.valuation import (
+    annual_history,
     compute_valuation,
     latest_total_debt,
     trailing_twelve_months,
@@ -113,3 +114,74 @@ def test_no_debt_tagged_is_none_and_noted():
     assert latest_total_debt(facts) is None
     result = compute_valuation(facts, share_price=1.0, currency="USD")
     assert any("No debt" in note for note in result.notes)
+
+
+def _fy(year, val, form="10-K", filed=None):
+    return {
+        "start": f"{year}-01-01",
+        "end": f"{year}-12-31",
+        "val": val,
+        "form": form,
+        "filed": filed or f"{year + 1}-02-20",
+    }
+
+
+def test_annual_history_keeps_latest_years_oldest_first_and_never_zero_fills():
+    facts = _facts(
+        {
+            "Revenues": _tag(*[_fy(y, y * 1e6) for y in range(2019, 2026)]),
+            "ResearchAndDevelopmentExpense": _tag(_fy(2024, 80e6), _fy(2025, 90e6)),
+            # A quarter must not be mistaken for a full year.
+            "NetIncomeLoss": _tag(
+                _fy(2025, -40e6),
+                {"start": "2025-04-01", "end": "2025-06-30", "val": -10e6, "form": "10-K"},
+            ),
+        }
+    )
+    history = annual_history(facts)
+    assert [h.year for h in history] == [2021, 2022, 2023, 2024, 2025]
+    assert history[-1].revenue == 2025e6
+    assert history[-1].researchAndDevelopment == 90e6
+    assert history[-1].netIncome == -40e6
+    assert history[0].researchAndDevelopment is None
+    assert history[0].operatingIncome is None
+
+
+def test_annual_history_ignores_proxy_statement_figures():
+    # Cardiff Oncology: SEC framed a DEF 14A pay-vs-performance figure
+    # (in thousands) as CY2023 net income.
+    facts = _facts(
+        {
+            "NetIncomeLoss": _tag(
+                _fy(2023, -41_441_000),
+                {**_fy(2023, -41_441, form="DEF 14A"), "frame": "CY2023"},
+            )
+        }
+    )
+    assert annual_history(facts)[0].netIncome == -41_441_000
+
+
+def test_annual_history_uses_latest_filed_restatement():
+    facts = _facts(
+        {
+            "Revenues": _tag(
+                _fy(2022, 100e6, filed="2023-02-20"), _fy(2022, 95e6, filed="2025-02-20")
+            )
+        }
+    )
+    assert annual_history(facts)[0].revenue == 95e6
+
+
+def test_annual_revenue_takes_total_over_component_tag():
+    # Pfizer 2022: contract revenue $91.8B, total revenues $101.2B.
+    facts = _facts(
+        {
+            "RevenueFromContractWithCustomerExcludingAssessedTax": _tag(_fy(2022, 91.8e9)),
+            "Revenues": _tag(_fy(2022, 101.2e9)),
+        }
+    )
+    assert annual_history(facts)[0].revenue == 101.2e9
+
+
+def test_annual_history_empty_without_10k_data():
+    assert annual_history(_facts({"Revenues": _tag(_fy(2025, 5e6, form="10-Q"))})) == []

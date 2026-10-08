@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
 import { AssetCompetitors, getCompanyCompetitors } from "../services/api";
 import ListContainer from "./ListContainer";

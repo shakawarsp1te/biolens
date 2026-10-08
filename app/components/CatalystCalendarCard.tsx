@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
 import { getCompanyCatalysts } from "../services/api";
 import { CatalystEvent } from "../types/domain";
 import ListContainer from "./ListContainer";
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function formatDate(iso: string, hasDayPrecision: boolean): string {
   const [year, month, day] = iso.split("-").map(Number);

@@ -1,9 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BottomTabBar, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
-import { StyleSheet, View } from "react-native";
-import Wordmark from "../../components/Wordmark";
-import { colors, spacing } from "../../constants/theme";
+import { colors, fontFamily } from "../../constants/theme";
 import { centeredColumn, useIsWideWeb } from "../../utils/layout";
 
 type IconPair = {
@@ -18,72 +15,28 @@ function tabIcon({ active, inactive }: IconPair) {
   return TabIcon;
 }
 
-const SIDEBAR_WIDTH = 220;
-
-/** Desktop sidebar: the wordmark above the same tab bar React Navigation
- * renders, laid out vertically because tabBarPosition is "left". */
-function SidebarTabBar(props: BottomTabBarProps) {
-  return (
-    <View style={styles.sidebar}>
-      <View style={styles.sidebarWordmark}>
-        <Wordmark size="sm" />
-      </View>
-      <BottomTabBar {...props} />
-    </View>
-  );
-}
-
 export default function TabsLayout() {
   const isWide = useIsWideWeb();
 
   return (
     <Tabs
-      tabBar={isWide ? SidebarTabBar : undefined}
+      // Desktop: the app shell's sidebar is the navigation, so no tab bar.
+      tabBar={isWide ? () => null : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textTertiary,
-        ...(isWide
-          ? {
-              tabBarPosition: "left",
-              tabBarLabelPosition: "beside-icon",
-              tabBarStyle: {
-                backgroundColor: colors.surface,
-                borderRightWidth: 0,
-                // React Navigation's own sidebar sizing sets a 360px
-                // minWidth -- far wider than five short labels need.
-                width: SIDEBAR_WIDTH,
-                minWidth: SIDEBAR_WIDTH,
-                flex: 1,
-                paddingTop: 0,
-                paddingHorizontal: spacing.sm,
-              },
-              tabBarItemStyle: {
-                justifyContent: "flex-start",
-                paddingHorizontal: spacing.md,
-                borderRadius: 8,
-                maxHeight: 44,
-              },
-              tabBarActiveBackgroundColor: colors.accentMuted,
-              tabBarLabelStyle: {
-                fontSize: 15,
-                fontWeight: "600",
-                marginLeft: spacing.md,
-              },
-              sceneStyle: { ...centeredColumn, backgroundColor: colors.background },
-            }
-          : {
-              tabBarStyle: {
-                backgroundColor: colors.surface,
-                borderTopWidth: 0,
-                height: 64,
-                paddingTop: 8,
-              },
-              tabBarLabelStyle: {
-                fontSize: 11,
-                fontWeight: "600",
-              },
-            }),
+        tabBarStyle: {
+          backgroundColor: colors.sidebar,
+          borderTopWidth: 1,
+          borderTopColor: colors.borderSubtle,
+          height: 60,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontFamily: fontFamily.medium },
+        sceneStyle: isWide
+          ? { ...centeredColumn, backgroundColor: colors.background }
+          : { backgroundColor: colors.background },
       }}
     >
       <Tabs.Screen
@@ -124,16 +77,3 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  sidebar: {
-    width: SIDEBAR_WIDTH,
-    height: "100%",
-    backgroundColor: colors.surface,
-  },
-  sidebarWordmark: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-});

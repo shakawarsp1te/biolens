@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, fontFamily, spacing, typography } from "../constants/theme";
 import { CompanyRecord } from "../types/domain";
 import AiDraftFlag from "./AiDraftFlag";

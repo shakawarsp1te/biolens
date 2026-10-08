@@ -154,3 +154,62 @@ def test_financial_health_404_when_facts_have_no_usable_figures(monkeypatch):
 
     response = client.get("/market/financial-health/CRDF")
     assert response.status_code == 404
+
+
+# --- GET /market/financial-history/{ticker} ---
+
+
+def test_financial_history_returns_years_from_sec_frames(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        return "0001837929"
+
+    async def fake_get_company_facts(self, cik):
+        return {
+            "facts": {
+                "us-gaap": {
+                    "Revenues": {
+                        "units": {
+                            "USD": [
+                                {
+                                    "start": "2025-01-01",
+                                    "end": "2025-12-31",
+                                    "val": 12e6,
+                                    "form": "10-K",
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+    monkeypatch.setattr(
+        market_router_module.SecEdgarClient, "get_company_facts", fake_get_company_facts
+    )
+
+    response = client.get("/market/financial-history/crdf")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ticker"] == "CRDF"
+    assert body["years"] == [
+        {
+            "year": 2025,
+            "periodEnd": "2025-12-31",
+            "revenue": 12e6,
+            "researchAndDevelopment": None,
+            "operatingIncome": None,
+            "netIncome": None,
+        }
+    ]
+
+
+def test_financial_history_404_when_not_a_sec_filer(monkeypatch):
+    async def fake_get_cik(self, ticker):
+        return None
+
+    monkeypatch.setattr(market_router_module.SecEdgarClient, "get_cik", fake_get_cik)
+
+    response = client.get("/market/financial-history/NOTATICKER")
+    assert response.status_code == 404

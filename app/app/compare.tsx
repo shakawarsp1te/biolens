@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../components/ui/Text";
 import FilterPill from "../components/FilterPill";
 import ScreenShell from "../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../constants/theme";

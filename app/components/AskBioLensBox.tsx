@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text, TextInput } from "./ui/Text";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { ApiError, askBioLens } from "../services/api";
 import Callout from "./Callout";
@@ -25,7 +26,13 @@ const EXAMPLE_QUESTIONS = [
  * plainly rather than styled as a failure — refusing to guess is the
  * correct outcome, not an error state.
  */
-export default function AskBioLensBox({ facts, sourceIds }: { facts: string[]; sourceIds: string[] }) {
+export default function AskBioLensBox({
+  facts,
+  sourceIds,
+}: {
+  facts: string[];
+  sourceIds: string[];
+}) {
   const [question, setQuestion] = useState("");
   const [state, setState] = useState<AskState>({ status: "idle" });
 

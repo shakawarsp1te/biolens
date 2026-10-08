@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, spacing, typography } from "../constants/theme";
 import { EventSummary, EvidenceClassification } from "../types/domain";
 import Avatar from "./Avatar";
@@ -10,7 +11,10 @@ const CLASSIFICATION_META: Record<EvidenceClassification, { label: string; color
   confirmatory_positive: { label: "Confirmatory positive", color: colors.evidenceConfirmatory },
   encouraging_signal: { label: "Encouraging signal", color: colors.evidenceEncouraging },
   inconclusive: { label: "Inconclusive", color: colors.evidenceInconclusive },
-  negative_primary_endpoint: { label: "Negative on primary endpoint", color: colors.evidenceNegative },
+  negative_primary_endpoint: {
+    label: "Negative on primary endpoint",
+    color: colors.evidenceNegative,
+  },
 };
 
 const CONFIDENCE_LABEL: Record<EventSummary["confidence"], string> = {

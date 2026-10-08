@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.services.financial_health import compute_financial_health
 from app.services.market_data import CHART_RANGES, MarketDataClient
 from app.services.sec_edgar import SecEdgarClient
-from app.services.valuation import compute_valuation
+from app.services.valuation import annual_history, compute_valuation
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -104,3 +104,25 @@ async def get_valuation(ticker: str) -> dict:
             "compute its valuation reliably.",
         )
     return {"ticker": ticker.upper(), "priceAsOf": quote.get("market_time"), **result.model_dump()}
+
+
+@router.get("/financial-history/{ticker}")
+async def get_financial_history(ticker: str) -> dict:
+    """Up to five calendar years of revenue, R&D, operating income and net
+    income, straight from the company's SEC filings (XBRL company facts) --
+    see app/services/valuation.py's annual_history. A 404 means there's no
+    US-GAAP annual data to show, never an estimate."""
+    async with SecEdgarClient() as client:
+        cik = await client.get_cik(ticker)
+        facts = await client.get_company_facts(cik) if cik else None
+
+    years = annual_history(facts) if facts else []
+    if not years:
+        raise HTTPException(
+            status_code=404, detail=f"No annual figures found in '{ticker}'s SEC filings."
+        )
+    return {
+        "ticker": ticker.upper(),
+        "source": "SEC EDGAR XBRL company facts",
+        "years": [year.model_dump() for year in years],
+    }

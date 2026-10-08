@@ -321,6 +321,36 @@ export interface Valuation {
   notes: string[];
 }
 
+/** One fiscal year of income-statement figures from 10-K filings
+ * (api/app/services/valuation.py's annual_history). Null fields are lines
+ * the company didn't report that year — never zero-filled. */
+export interface AnnualFinancials {
+  year: number;
+  periodEnd: string;
+  revenue: number | null;
+  researchAndDevelopment: number | null;
+  operatingIncome: number | null;
+  netIncome: number | null;
+}
+
+export interface FinancialHistory {
+  ticker: string;
+  source: string;
+  years: AnnualFinancials[];
+}
+
+/** Null on a 404: no US-GAAP annual figures in the company's filings. */
+export async function getFinancialHistory(ticker: string): Promise<FinancialHistory | null> {
+  try {
+    return await apiGet<FinancialHistory>(
+      `/market/financial-history/${encodeURIComponent(ticker)}`,
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 /** Null on a 404: a foreign filer, a non-USD listing, or missing data —
  * BioLens won't show a market cap it can't compute correctly. */
 export async function getValuation(ticker: string): Promise<Valuation | null> {

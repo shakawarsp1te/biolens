@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import FilterPill from "./FilterPill";
 

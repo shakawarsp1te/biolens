@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Text } from "react-native";
+import { Text } from "../../components/ui/Text";
 import Divider from "../../components/Divider";
 import EventCard from "../../components/EventCard";
 import ListContainer from "../../components/ListContainer";
@@ -42,7 +42,11 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <ScreenShell brand title="The Frontier" subtitle="Science, trials, and financials across the biotech companies you follow.">
+    <ScreenShell
+      brand
+      title="The Frontier"
+      subtitle="Science, trials, and financials across the biotech companies you follow."
+    >
       {MOCK_EVENTS.map((event, i) => (
         <React.Fragment key={event.id}>
           {i > 0 ? <Divider /> : null}

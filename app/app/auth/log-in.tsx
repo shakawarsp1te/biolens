@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text, TextInput } from "../../components/ui/Text";
 import Callout from "../../components/Callout";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
@@ -56,7 +57,8 @@ export default function LogInScreen() {
         value={email}
         onChangeText={(text) => {
           setEmail(text);
-          if (state.status !== "form" && state.status !== "submitting") setState({ status: "form" });
+          if (state.status !== "form" && state.status !== "submitting")
+            setState({ status: "form" });
         }}
         placeholder="you@example.com"
         placeholderTextColor={colors.textTertiary}
@@ -90,7 +92,9 @@ export default function LogInScreen() {
       ) : null}
 
       {state.status === "resent" ? (
-        <Callout>If that email exists and isn&apos;t verified yet, we&apos;ve sent a new link.</Callout>
+        <Callout>
+          If that email exists and isn&apos;t verified yet, we&apos;ve sent a new link.
+        </Callout>
       ) : null}
 
       <Pressable

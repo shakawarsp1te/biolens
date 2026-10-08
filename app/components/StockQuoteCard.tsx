@@ -1,13 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  LayoutChangeEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { getStockHistory, getStockQuote, StockHistoryPoint, StockQuote } from "../services/api";
 import PriceChart from "./PriceChart";

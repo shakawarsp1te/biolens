@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../../components/ui/Text";
 import DiscoveryCard from "../../components/DiscoveryCard";
 import ListContainer from "../../components/ListContainer";
 import ScreenShell from "../../components/ScreenShell";

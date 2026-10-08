@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "../../components/ui/Text";
 import DiscoveryCard from "../../components/DiscoveryCard";
 import DrugCard from "../../components/DrugCard";
 import FilterBar from "../../components/FilterBar";
@@ -147,7 +148,11 @@ export default function DiscoverScreen() {
       ) : (
         <ListContainer>
           {filteredCards.map((card) => (
-            <DiscoveryCard key={card.id} data={card} onExplore={() => router.push(`/company/${card.id}`)} />
+            <DiscoveryCard
+              key={card.id}
+              data={card}
+              onExplore={() => router.push(`/company/${card.id}`)}
+            />
           ))}
         </ListContainer>
       )}
@@ -167,8 +172,8 @@ export default function DiscoverScreen() {
       </ListContainer>
 
       <Text style={styles.footnote}>
-        Therapeutic Area only has one real option today since every seed company is
-        oncology-focused — it&apos;ll do more work once coverage broadens.
+        Therapeutic Area only has one real option today since every seed company is oncology-focused
+        — it&apos;ll do more work once coverage broadens.
       </Text>
     </ScreenShell>
   );

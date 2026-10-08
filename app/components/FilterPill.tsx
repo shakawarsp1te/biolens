@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text } from "./ui/Text";
 import { colors, radii, spacing, typography } from "../constants/theme";
 
 /** Robinhood-style segmented filter pill — solid accent fill when selected,
@@ -18,7 +19,9 @@ export default function FilterPill({
       style={[styles.pill, selected ? styles.pillSelected : styles.pillUnselected]}
       onPress={onPress}
     >
-      <Text style={[styles.label, selected ? styles.labelSelected : styles.labelUnselected]}>{label}</Text>
+      <Text style={[styles.label, selected ? styles.labelSelected : styles.labelUnselected]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }

@@ -1,15 +1,14 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text, TextInput } from "../../components/ui/Text";
 import ScreenShell from "../../components/ScreenShell";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { API_BASE_URL } from "../../services/api";
 
 type ScreenState =
-  | { status: "form" }
-  | { status: "submitting" }
-  | { status: "sent"; devResetToken: string | null };
+  { status: "form" } | { status: "submitting" } | { status: "sent"; devResetToken: string | null };
 
 /**
  * Requests a password-reset link. The reset itself happens on a web page
@@ -42,8 +41,8 @@ export default function ForgotPasswordScreen() {
           <View style={styles.devBox}>
             <Text style={styles.devBoxTitle}>Development mode</Text>
             <Text style={styles.devBoxBody}>
-              No real email service is configured on this backend yet. Tap below to open the
-              same reset link a real email would contain.
+              No real email service is configured on this backend yet. Tap below to open the same
+              reset link a real email would contain.
             </Text>
             <Pressable style={styles.primaryButton} onPress={() => Linking.openURL(resetUrl)}>
               <Text style={styles.primaryButtonText}>Open reset link</Text>

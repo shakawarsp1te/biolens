@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Text } from "../components/ui/Text";
 import { DIRECTION_META, formatReturn } from "../components/ImpactCall";
 import ListContainer from "../components/ListContainer";
 import ScreenShell from "../components/ScreenShell";

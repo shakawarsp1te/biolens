@@ -6,9 +6,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "../components/ui/Text";
 import FilterPill from "../components/FilterPill";
 import ListContainer from "../components/ListContainer";
 import PriceChart from "../components/PriceChart";

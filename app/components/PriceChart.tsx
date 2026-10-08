@@ -4,9 +4,9 @@ import {
   PanResponder,
   PanResponderInstance,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "./ui/Text";
 import Svg, { Circle, Defs, Line as SvgLine, LinearGradient, Path, Stop } from "react-native-svg";
 import { colors, radii, spacing, typography } from "../constants/theme";
 import { StockHistoryPoint } from "../services/api";
@@ -142,10 +142,7 @@ export default function PriceChart({ points, width, height, onExpand }: Props) {
       {active ? (
         <View
           pointerEvents="none"
-          style={[
-            styles.tooltip,
-            { left: Math.min(Math.max(active.x - 55, 0), width - 110) },
-          ]}
+          style={[styles.tooltip, { left: Math.min(Math.max(active.x - 55, 0), width - 110) }]}
         >
           <Text style={styles.tooltipPrice}>${points[activeIndex!].close.toFixed(2)}</Text>
           <Text style={styles.tooltipTime}>
@@ -179,7 +176,9 @@ function buildChartGeometry(points: StockHistoryPoint[], width: number, height: 
     return { x, y };
   });
 
-  const path = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`).join(" ");
+  const path = coords
+    .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`)
+    .join(" ");
   const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`;
 
   const isUp = closes[closes.length - 1] >= closes[0];
