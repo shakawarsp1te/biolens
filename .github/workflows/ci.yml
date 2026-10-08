@@ -8,7 +8,7 @@ on:
 
 jobs:
   app:
-    name: App (lint, typecheck)
+    name: App (lint, typecheck, web build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,6 +23,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # Same command Render runs to build the website (render.yaml) --
+      # catches anything that breaks the web build before it deploys.
+      - run: npx expo export --platform web
 
   api:
     name: API (lint, format check, tests)

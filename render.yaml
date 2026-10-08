@@ -1,5 +1,8 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 #
+# Backend only. The website (app/) is a static build hosted on Vercel --
+# see app/vercel.json and the README's "Deploying your own copy".
+#
 # Lets Render provision the whole backend from one "New Blueprint" click:
 # connect this repo, Render reads this file, asks for the envVars marked
 # `sync: false` below, and deploys. No Dockerfile/build config to hand-enter.
@@ -34,6 +37,12 @@ services:
       - key: SEC_EDGAR_CONTACT_EMAIL
         sync: false
       - key: PUBMED_CONTACT_EMAIL
+        sync: false
+      # Where the BioLens website is hosted (e.g.
+      # https://biolens.vercel.app) -- the only browser origin allowed to
+      # call this API. Enter `*` on first setup if the website isn't
+      # deployed yet, then come back and replace it with the real URL.
+      - key: CORS_ALLOW_ORIGINS
         sync: false
       # Render can generate a random value for this one itself -- nothing
       # to type in.

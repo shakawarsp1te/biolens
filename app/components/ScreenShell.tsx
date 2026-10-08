@@ -1,6 +1,7 @@
 import React from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, spacing, typography } from "../constants/theme";
+import { useIsWideWeb } from "../utils/layout";
 import Wordmark from "./Wordmark";
 
 type Props = {
@@ -19,11 +20,16 @@ type Props = {
  * so the app already feels navigable before any backend integration exists.
  */
 export default function ScreenShell({ title, subtitle, brand, children }: Props) {
+  // On desktop the sidebar already carries the wordmark — showing it again
+  // above the page title would just repeat it side by side.
+  const isWide = useIsWideWeb();
+  const showWordmark = brand && !isWide;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          {brand ? (
+          {showWordmark ? (
             <View style={styles.wordmarkRow}>
               <Wordmark size="sm" />
             </View>
