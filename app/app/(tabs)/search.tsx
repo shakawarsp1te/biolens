@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     ...typography.caption,
-    color: "#04070D",
+    color: colors.onAccent,
     fontWeight: "700",
   },
   input: {

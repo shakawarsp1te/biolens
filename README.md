@@ -12,7 +12,12 @@ BioLens joins real ClinicalTrials.gov, PubMed, and SEC EDGAR data into one view 
 
 ## What it actually does
 
-- **Discover** — oncology companies, from emerging biotechs to large pharma, ranked by a deterministic *Frontier Score* (research activity, explicitly not "investment attractiveness"), with filters for stage, modality, target, and therapeutic area.
+BioLens is laid out as a research terminal: a persistent sidebar, a global company/ticker search (press `/`), and dense, sourced tables and panels instead of a feed of cards.
+
+- **Company dashboards** — a fixed header (price, market cap, enterprise value, cash, runway) over six views: Overview, Financials (five years of revenue, R&D and income from 10-K filings), Clinical Pipeline, Commercial Analysis, Research, and Catalysts. The active view lives in the URL, so it can be linked to.
+- **Company Explorer** — a screener over every tracked company: market cap, revenue, cash, runway, pipeline size and highest phase, with search, filters, sortable columns and a column picker.
+- **Clinical Pipelines, Catalyst Calendar, Financial Analysis, Research Reports** — cross-company views of every drug, every disclosed trial date, every balance sheet, and every new paper or filing BioLens has made a call on.
+- **Missing data is labeled, never filled in** — "Not reported", "n/a", "No ticker" in words, and a source line under every panel.
 - **Auto-discovery pipeline** — finds real, newly-active, industry-sponsored trials on ClinicalTrials.gov, folds subsidiaries into their publicly traded parent (Janssen → Johnson & Johnson, JNJ), and drafts a new company profile grounded strictly in that company's own lead-sponsored trials — a large company is represented by its most advanced recent trials, and its profile says so. Add a specific company with `python -m scripts.run_discovery --sponsor "Pfizer"`. Every AI-drafted profile is flagged `pending review`, never presented as verified.
 - **Company profiles** — a real pipeline (drug → target → modality → trial → phase), a two-sided thesis map ("what has to go right" / "what could go wrong" — deliberately monochrome, never green/red), and a live stock quote where one exists.
 - **Cash runway** — cash plus marketable securities against quarterly operating burn, computed from a company's own SEC filings (XBRL, no LLM involved), the same "BioLens calculated, never invented" discipline as everything else.
@@ -44,7 +49,7 @@ Full rule set: [`docs/PLAN.md`](docs/PLAN.md) §3. Original product spec: [`docs
 | Data | SQLite (interim store — see `docs/CHECKLIST.md` for the Postgres migration note) |
 | AI | Anthropic Claude, behind a provider-agnostic `LLMProvider` abstraction — swapping vendors is a config change, not a rewrite |
 | Real external data | ClinicalTrials.gov, PubMed, SEC EDGAR (XBRL), Yahoo Finance — all free, official, no scraping |
-| Design | A from-scratch fintech-native design system (no default AI-generated-app tells: no Inter font, no purple gradients, no uppercase eyebrow labels) |
+| Design | A from-scratch research-terminal design system: charcoal/navy surfaces, IBM Plex Sans with tabular figures, 2-4px radii, teal reserved for interface chrome (never for data, so nothing reads as "buy"), and reusable Panel / DataTable / chart components in `app/components/ui/` |
 
 ```
 biolens/

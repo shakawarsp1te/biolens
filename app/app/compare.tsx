@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   emphasizedValue: {
     ...typography.monoLarge,
     fontSize: 20,
-    color: colors.accent,
+    color: colors.textPrimary,
   },
   footnote: {
     ...typography.caption,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   exploreButtonText: {
     ...typography.caption,
-    color: "#04070D",
+    color: colors.onAccent,
     fontWeight: "700",
   },
 });

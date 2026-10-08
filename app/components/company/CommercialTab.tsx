@@ -52,7 +52,7 @@ export default function CommercialTab({ company }: { company: CompanyRecord }) {
           }
         >
           {!company.ticker ? (
-            <Missing label="Private company: no public revenue figures" />
+            <Missing label="No ticker on this profile, so there are no filings to read" />
           ) : (
             <KeyValueTable
               rows={[

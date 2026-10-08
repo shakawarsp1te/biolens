@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   labelSelected: {
-    color: "#04070D",
+    color: colors.onAccent,
     fontWeight: "700",
   },
   labelUnselected: {

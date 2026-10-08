@@ -106,6 +106,10 @@ export default function RootLayout() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="company/[id]" options={withHomeFallback(dashboardOptions)} />
+      <Stack.Screen name="pipelines" options={withHomeFallback(dashboardOptions)} />
+      <Stack.Screen name="catalysts" options={withHomeFallback(dashboardOptions)} />
+      <Stack.Screen name="financials" options={withHomeFallback(dashboardOptions)} />
+      <Stack.Screen name="research" options={withHomeFallback(dashboardOptions)} />
       <Stack.Screen name="compare" options={withHomeFallback(barebackHeaderOptions)} />
       <Stack.Screen name="track-record" options={withHomeFallback(barebackHeaderOptions)} />
       <Stack.Screen name="disclaimer" options={withHomeFallback(barebackHeaderOptions)} />

@@ -79,7 +79,7 @@ export default function FinancialsTab({ company }: { company: CompanyRecord }) {
   if (!company.ticker) {
     return (
       <Panel title="Financials">
-        <Missing label="Private company: no public filings to report" />
+        <Missing label="No ticker on this profile, so there are no filings to read" />
       </Panel>
     );
   }

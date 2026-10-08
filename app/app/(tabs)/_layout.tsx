@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { colors, fontFamily } from "../../constants/theme";
-import { centeredColumn, useIsWideWeb } from "../../utils/layout";
+import { useIsWideWeb } from "../../utils/layout";
 
 type IconPair = {
   active: keyof typeof Ionicons.glyphMap;
@@ -34,22 +34,22 @@ export default function TabsLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: { fontSize: 11, fontFamily: fontFamily.medium },
-        sceneStyle: isWide
-          ? { ...centeredColumn, backgroundColor: colors.background }
-          : { backgroundColor: colors.background },
+        // Each page sets its own width: research tables use the full width,
+        // reading pages (ScreenShell) a narrower column.
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Overview",
           tabBarIcon: tabIcon({ active: "planet", inactive: "planet-outline" }),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
-          title: "Discover",
+          title: "Explorer",
           tabBarIcon: tabIcon({ active: "compass", inactive: "compass-outline" }),
         }}
       />

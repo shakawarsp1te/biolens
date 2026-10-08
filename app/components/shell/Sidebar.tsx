@@ -51,7 +51,7 @@ export default function Sidebar() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Company</Text>
             <View style={styles.companyCard}>
-              <Text style={styles.companyTicker}>{company.ticker ?? "Private"}</Text>
+              <Text style={styles.companyTicker}>{company.ticker ?? "No ticker"}</Text>
               <Text style={styles.companyName} numberOfLines={1}>
                 {company.name}
               </Text>

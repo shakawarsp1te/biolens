@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 import { colors, radii, spacing, typography } from "../../constants/theme";
 import { useCatalysts, useCompetitors } from "../../hooks/useCompanyData";
 import type { AssetCompetitors } from "../../services/api";
@@ -7,34 +7,24 @@ import type { CatalystEvent, CompanyRecord, PipelineAsset } from "../../types/do
 import DataTable, { Cell } from "../ui/DataTable";
 import Missing from "../ui/Missing";
 import Panel from "../ui/Panel";
-import PhaseIndicator, { phaseRank } from "../ui/PhaseIndicator";
+import Chip from "../ui/Chip";
+import PhaseIndicator, {
+  phaseRank,
+  STAGE_BUCKETS,
+  stageBucket,
+  type StageBucket,
+} from "../ui/PhaseIndicator";
 import SourceNote from "../ui/SourceNote";
 import { Text, TextInput } from "../ui/Text";
 import WatchButton from "../WatchButton";
 import { disclosed } from "../../utils/format";
 import { Stack } from "./Layout";
-import { catalystDate, CT_GOV_URL, EVENT_LABEL } from "./panels";
-
-const STAGE_FILTERS = [
-  { key: "all", label: "All stages", match: () => true },
-  { key: "early", label: "Preclinical / Phase I", match: (r: number) => r < 2.5 },
-  { key: "mid", label: "Phase II", match: (r: number) => r >= 2.5 && r < 3.5 },
-  { key: "late", label: "Phase III+", match: (r: number) => r >= 3.5 },
-] as const;
-
-type StageFilter = (typeof STAGE_FILTERS)[number]["key"];
-
-/** CT.gov's status enum ("ACTIVE_NOT_RECRUITING") as plain words. */
-function statusLabel(status: string | null): string | null {
-  if (!status) return null;
-  const words = status.toLowerCase().replace(/_/g, " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
+import { catalystDate, CT_GOV_URL, EVENT_LABEL, statusLabel } from "./panels";
 
 export default function PipelineTab({ company }: { company: CompanyRecord }) {
   const catalysts = useCatalysts(company.id);
   const competitors = useCompetitors(company.id);
-  const [stage, setStage] = useState<StageFilter>("all");
+  const [stage, setStage] = useState<StageBucket | null>(null);
   const [indication, setIndication] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -59,8 +49,7 @@ export default function PipelineTab({ company }: { company: CompanyRecord }) {
   );
 
   const rows = company.pipeline.filter((asset) => {
-    const rank = phaseRank(asset.stage) ?? 0;
-    const stageMatch = STAGE_FILTERS.find((f) => f.key === stage)?.match(rank) ?? true;
+    const stageMatch = !stage || stageBucket(asset.stage) === stage;
     const q = query.trim().toLowerCase();
     const textMatch =
       !q ||
@@ -90,7 +79,8 @@ export default function PipelineTab({ company }: { company: CompanyRecord }) {
           />
         </View>
         <View style={styles.chips}>
-          {STAGE_FILTERS.map((f) => (
+          <Chip label="All stages" selected={!stage} onPress={() => setStage(null)} />
+          {STAGE_BUCKETS.map((f) => (
             <Chip
               key={f.key}
               label={f.label}
@@ -291,32 +281,6 @@ function AssetDetail({
   );
 }
 
-function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityState={{ selected }}
-      style={({ hovered }: { hovered?: boolean }) => [
-        styles.chip,
-        hovered && styles.chipHovered,
-        selected && styles.chipSelected,
-      ]}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   toolbar: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, alignItems: "center" },
   search: {
@@ -334,18 +298,6 @@ const styles = StyleSheet.create({
   searchInput: { fontSize: 13, color: colors.textPrimary, outlineStyle: "none" } as object,
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
   chipsLabel: { ...typography.caption, color: colors.textTertiary, marginRight: 4 },
-  chip: {
-    height: 26,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-  },
-  chipHovered: { borderColor: colors.borderStrong },
-  chipSelected: { backgroundColor: colors.accentMuted, borderColor: colors.accentMuted },
-  chipText: { fontSize: 12, color: colors.textSecondary },
-  chipTextSelected: { color: colors.accent, fontWeight: "500" },
   drugCell: { flexDirection: "row", alignItems: "center", gap: 6 },
   detail: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xl },
   detailCol: { minWidth: 200, flex: 1, gap: 3 },

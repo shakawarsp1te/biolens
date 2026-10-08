@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...typography.body,
     fontWeight: "700",
-    color: "#04070D",
+    color: colors.onAccent,
   },
   linkRow: {
     marginTop: spacing.lg,

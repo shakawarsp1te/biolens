@@ -75,3 +75,20 @@ const styles = StyleSheet.create({
   fill: { height: "100%", backgroundColor: colors.chartNeutral },
   label: { ...typography.caption, fontSize: 12, color: colors.textSecondary },
 });
+
+/** Development-stage buckets for filters and counts. Combined phases
+ * (I/II, II/III) count toward the later phase they've reached. */
+export const STAGE_BUCKETS = [
+  { key: "early", label: "Preclinical / Phase I", match: (rank: number) => rank < 2.5 },
+  { key: "mid", label: "Phase II", match: (rank: number) => rank >= 2.5 && rank < 3.5 },
+  { key: "late", label: "Phase III", match: (rank: number) => rank >= 3.5 && rank < 5 },
+  { key: "filed", label: "Filed / approved", match: (rank: number) => rank >= 5 },
+] as const;
+
+export type StageBucket = (typeof STAGE_BUCKETS)[number]["key"];
+
+export function stageBucket(phase: string | null | undefined): StageBucket | null {
+  const rank = phaseRank(phase);
+  if (rank === null) return null;
+  return STAGE_BUCKETS.find((b) => b.match(rank))?.key ?? null;
+}

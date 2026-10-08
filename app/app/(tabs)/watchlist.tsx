@@ -1,15 +1,21 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import DataTable, { Cell } from "../../components/ui/DataTable";
+import Missing from "../../components/ui/Missing";
+import Page from "../../components/ui/Page";
+import Panel from "../../components/ui/Panel";
+import PhaseIndicator, { phaseRank } from "../../components/ui/PhaseIndicator";
+import SourceNote from "../../components/ui/SourceNote";
+import Tag from "../../components/ui/Tag";
 import { Text } from "../../components/ui/Text";
-import DiscoveryCard from "../../components/DiscoveryCard";
-import ListContainer from "../../components/ListContainer";
-import ScreenShell from "../../components/ScreenShell";
 import WatchButton from "../../components/WatchButton";
-import { colors, radii, spacing, typography } from "../../constants/theme";
+import { colors, spacing, typography } from "../../constants/theme";
 import { useCompanies } from "../../context/CompaniesContext";
 import { useWatchlist } from "../../context/WatchlistContext";
+import { useValuations } from "../../hooks/useCompanyData";
 import { searchTrialsBySponsor } from "../../services/api";
+import { disclosed, formatUsdCompact } from "../../utils/format";
 import { findPipelineAssetByDrugId, findPipelineAssetsByTarget } from "../../utils/pipelineLookup";
 import { diffAndUpdateSeenTrials } from "../../utils/watchlistFreshness";
 
@@ -85,150 +91,204 @@ export default function WatchlistScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- watchedCompanyIds is the intentional dependency key (see above), not watchedCompanies itself (a new array every render).
   }, [watchedCompanyIds]);
 
+  const valuationOf = useValuations(
+    watchedCompanies.map((c) => c.ticker).filter((t): t is string => !!t),
+  );
+
   return (
-    <ScreenShell title="Watchlist" subtitle="Companies, drugs, and targets you're following.">
+    <Page title="Watchlist" subtitle="Companies, drugs, and targets you're following.">
       {loading ? (
         <View style={styles.centeredRow}>
           <ActivityIndicator color={colors.accent} />
         </View>
       ) : nothingFollowed ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Nothing followed yet</Text>
+        <Panel title="Nothing followed yet">
           <Text style={styles.emptyBody}>
-            Tap the bookmark icon on any company, drug, or target to follow it — it will show up
-            here, and stays saved on this device even after you close the app.
+            Use the bookmark icon on any company, drug, or target to follow it. It shows up here and
+            stays saved on this device.
           </Text>
-        </View>
+        </Panel>
       ) : (
         <>
           {watchedCompanies.length > 0 ? (
-            <>
-              <Text style={styles.sectionTitle}>Companies</Text>
-              <ListContainer>
-                {watchedCompanies.map((card) => (
-                  <DiscoveryCard
-                    key={card.id}
-                    data={card}
-                    onExplore={() => router.push(`/company/${card.id}`)}
-                    newActivityCount={newActivityCounts[card.id]}
-                  />
-                ))}
-              </ListContainer>
-            </>
+            <Panel
+              title="Companies"
+              meta={String(watchedCompanies.length)}
+              flush
+              footer={
+                <SourceNote source="SEC EDGAR filings, Yahoo Finance and ClinicalTrials.gov">
+                  new trials = trials ClinicalTrials.gov lists for this sponsor that weren&apos;t
+                  there on your last visit
+                </SourceNote>
+              }
+            >
+              <DataTable
+                minWidth={760}
+                rows={watchedCompanies}
+                rowKey={(c) => c.id}
+                onRowPress={(c) => router.push({ pathname: "/company/[id]", params: { id: c.id } })}
+                columns={[
+                  {
+                    key: "company",
+                    title: "Company",
+                    flex: 1.6,
+                    sortValue: (c) => c.name,
+                    render: (c) => (
+                      <View style={styles.nameCell}>
+                        <WatchButton entityType="company" entityId={c.id} size={13} />
+                        <Cell strong>{c.name}</Cell>
+                        {newActivityCounts[c.id] ? (
+                          <Tag
+                            label={`${newActivityCounts[c.id]} new trial${newActivityCounts[c.id] === 1 ? "" : "s"}`}
+                            tone="accent"
+                          />
+                        ) : null}
+                      </View>
+                    ),
+                  },
+                  {
+                    key: "ticker",
+                    title: "Ticker",
+                    width: 84,
+                    render: (c) =>
+                      c.ticker ? <Cell>{c.ticker}</Cell> : <Missing label="No ticker" />,
+                  },
+                  {
+                    key: "marketCap",
+                    title: "Market cap",
+                    width: 110,
+                    align: "right",
+                    render: (c) => {
+                      if (!c.ticker) return <Missing label="No ticker" />;
+                      const v = valuationOf(c.ticker);
+                      if (!v || v.status === "loading") return <Cell muted>…</Cell>;
+                      return v.status === "loaded" && v.data ? (
+                        <Cell numeric>{formatUsdCompact(v.data.marketCap)}</Cell>
+                      ) : (
+                        <Missing label="n/a" />
+                      );
+                    },
+                  },
+                  {
+                    key: "stage",
+                    title: "Most advanced",
+                    width: 180,
+                    sortValue: (c) => phaseRank(c.stage),
+                    render: (c) => <PhaseIndicator phase={c.stage} />,
+                  },
+                ]}
+              />
+            </Panel>
           ) : null}
 
           {watchedDrugs.length > 0 ? (
-            <>
-              <Text style={styles.sectionTitle}>Drugs</Text>
-              <ListContainer>
-                {watchedDrugs.map((asset) => (
-                  <Pressable
-                    key={asset.drugId}
-                    style={styles.entityRow}
-                    onPress={() => router.push(`/company/${asset.companyId}`)}
-                  >
-                    <View style={styles.entityIdentity}>
-                      <Text style={styles.entityName}>{asset.drugName}</Text>
-                      <Text style={styles.entityMeta}>{asset.companyName}</Text>
-                      <Text style={styles.entityMeta}>
-                        {asset.target} · {asset.modality} · {asset.stage}
-                      </Text>
-                    </View>
-                    <WatchButton entityType="drug" entityId={asset.drugId} size={18} />
-                  </Pressable>
-                ))}
-              </ListContainer>
-            </>
+            <Panel title="Drugs" meta={String(watchedDrugs.length)} flush>
+              <DataTable
+                minWidth={760}
+                rows={watchedDrugs}
+                rowKey={(a) => a.drugId}
+                onRowPress={(a) =>
+                  router.push({
+                    pathname: "/company/[id]",
+                    params: { id: a.companyId, tab: "pipeline" },
+                  })
+                }
+                columns={[
+                  {
+                    key: "drug",
+                    title: "Therapy",
+                    flex: 1.3,
+                    sortValue: (a) => a.drugName,
+                    render: (a) => (
+                      <View style={styles.nameCell}>
+                        <WatchButton entityType="drug" entityId={a.drugId} size={13} />
+                        <Cell strong>{a.drugName}</Cell>
+                      </View>
+                    ),
+                  },
+                  {
+                    key: "company",
+                    title: "Company",
+                    flex: 1,
+                    render: (a) => <Cell>{a.companyName}</Cell>,
+                  },
+                  {
+                    key: "mechanism",
+                    title: "Mechanism",
+                    flex: 1.3,
+                    render: (a) => {
+                      const parts = [disclosed(a.target), disclosed(a.modality)].filter(Boolean);
+                      return parts.length ? (
+                        <Cell numberOfLines={2}>{parts.join(" · ")}</Cell>
+                      ) : (
+                        <Missing label="Not disclosed" />
+                      );
+                    },
+                  },
+                  {
+                    key: "stage",
+                    title: "Stage",
+                    width: 180,
+                    sortValue: (a) => phaseRank(a.stage),
+                    render: (a) => <PhaseIndicator phase={a.stage} />,
+                  },
+                ]}
+              />
+            </Panel>
           ) : null}
 
           {watchedTargets.length > 0 ? (
-            <>
-              <Text style={styles.sectionTitle}>Targets</Text>
-              <ListContainer>
-                {watchedTargets.map(({ target, assets }) => (
-                  <View key={target} style={styles.entityRow}>
-                    <View style={styles.entityIdentity}>
-                      <Text style={styles.entityName}>{target}</Text>
-                      {assets.length === 0 ? (
-                        <Text style={styles.entityMeta}>
-                          No programs against this target in BioLens yet.
-                        </Text>
-                      ) : (
-                        assets.map((asset) => (
-                          <Pressable
-                            key={asset.drugId}
-                            onPress={() => router.push(`/company/${asset.companyId}`)}
-                          >
-                            <Text style={styles.entityMetaLink}>
-                              {asset.drugName} — {asset.companyName}
-                            </Text>
-                          </Pressable>
-                        ))
-                      )}
-                    </View>
-                    <WatchButton entityType="target" entityId={target} size={18} />
+            <Panel title="Targets" meta={String(watchedTargets.length)} flush>
+              {watchedTargets.map(({ target, assets }) => (
+                <View key={target} style={styles.targetRow}>
+                  <View style={styles.nameCell}>
+                    <WatchButton entityType="target" entityId={target} size={13} />
+                    <Text style={styles.targetName}>{target}</Text>
                   </View>
-                ))}
-              </ListContainer>
-            </>
+                  <View style={styles.targetPrograms}>
+                    {assets.length === 0 ? (
+                      <Missing label="No programs against this target in BioLens yet" />
+                    ) : (
+                      assets.map((asset) => (
+                        <Text
+                          key={asset.drugId}
+                          style={styles.link}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/company/[id]",
+                              params: { id: asset.companyId, tab: "pipeline" },
+                            })
+                          }
+                        >
+                          {asset.drugName} · {asset.companyName} · {asset.stage}
+                        </Text>
+                      ))
+                    )}
+                  </View>
+                </View>
+              ))}
+            </Panel>
           ) : null}
         </>
       )}
-    </ScreenShell>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredRow: {
-    alignItems: "center",
-    paddingVertical: spacing.xl,
-  },
-  emptyState: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-  },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptyBody: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  sectionTitle: {
-    ...typography.heading,
-    fontSize: 17,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    marginTop: spacing.xl,
-  },
-  entityRow: {
+  centeredRow: { alignItems: "center", paddingVertical: spacing.xl },
+  emptyBody: { ...typography.body, fontSize: 13, color: colors.textSecondary },
+  nameCell: { flexDirection: "row", alignItems: "center", gap: 8 },
+  targetRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingVertical: spacing.md,
+    flexWrap: "wrap",
+    gap: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
   },
-  entityIdentity: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  entityName: {
-    ...typography.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  entityMeta: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textTertiary,
-    marginTop: 2,
-  },
-  entityMetaLink: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.accent,
-    marginTop: spacing.xs,
-  },
+  targetName: { fontSize: 13, fontWeight: "500", color: colors.textPrimary, minWidth: 160 },
+  targetPrograms: { flex: 1, gap: 3, minWidth: 240 },
+  link: { fontSize: 12, color: colors.accent },
 });

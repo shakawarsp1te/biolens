@@ -28,7 +28,9 @@ export default function ScreenShell({ title, subtitle, brand, children }: Props)
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}
+      >
         <View style={styles.header}>
           {showWordmark ? (
             <View style={styles.wordmarkRow}>
@@ -49,13 +51,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // A reading column: these pages are mostly prose and lists, which get
+  // hard to read past ~960px. Research tables use components/ui/Page.
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl * 2,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+    maxWidth: 960,
+    alignSelf: "center",
+  },
+  scrollContentWide: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
+    gap: 2,
   },
   wordmarkRow: {
     marginBottom: spacing.lg,
@@ -65,8 +77,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   subtitle: {
-    ...typography.body,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
 });

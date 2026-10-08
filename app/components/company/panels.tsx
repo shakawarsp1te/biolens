@@ -168,7 +168,7 @@ export function KeyDataPanel({ ticker, title = "Key data" }: { ticker?: string; 
       }
     >
       {!ticker ? (
-        <Missing label="Private company: no public filings or market price" />
+        <Missing label="No ticker on this profile, so there are no filings or price to read" />
       ) : !v ? (
         <PanelState
           resource={valuation}
@@ -242,7 +242,7 @@ export function RunwayPanel({ ticker }: { ticker?: string }) {
       }
     >
       {!ticker ? (
-        <Missing label="Private company: no public filings" />
+        <Missing label="No ticker on this profile, so there are no filings to read" />
       ) : !h ? (
         <PanelState resource={health} empty="No cash or burn figures in this company's filings" />
       ) : (
@@ -289,6 +289,13 @@ export const EVENT_LABEL: Record<CatalystEvent["eventType"], string> = {
   primary_completion: "Primary completion",
   completion: "Study completion",
 };
+
+/** CT.gov's status enum ("ACTIVE_NOT_RECRUITING") as plain words. */
+export function statusLabel(status: string | null): string | null {
+  if (!status) return null;
+  const words = status.toLowerCase().replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 export function catalystDate(event: CatalystEvent): string {
   return formatIsoDate(event.expectedDate, event.hasDayPrecision);

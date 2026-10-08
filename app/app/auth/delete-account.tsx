@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   dangerButtonText: {
     ...typography.body,
     fontWeight: "700",
-    color: "#04070D",
+    color: colors.onAccent,
   },
   cancelButton: {
     paddingVertical: spacing.sm + 4,

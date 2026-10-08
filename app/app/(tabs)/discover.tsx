@@ -1,213 +1,323 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import DataTable, { Cell, type Column } from "../../components/ui/DataTable";
+import Missing from "../../components/ui/Missing";
+import Page from "../../components/ui/Page";
+import Panel from "../../components/ui/Panel";
+import PhaseIndicator, { phaseRank } from "../../components/ui/PhaseIndicator";
+import SourceNote from "../../components/ui/SourceNote";
+import Tag from "../../components/ui/Tag";
 import { Text } from "../../components/ui/Text";
-import DiscoveryCard from "../../components/DiscoveryCard";
-import DrugCard from "../../components/DrugCard";
-import FilterBar from "../../components/FilterBar";
-import ListContainer from "../../components/ListContainer";
-import ScreenShell from "../../components/ScreenShell";
-import TrialMetric from "../../components/TrialMetric";
-import { colors, spacing, typography } from "../../constants/theme";
+import { ColumnMenu, SearchField, Select, Toolbar } from "../../components/ui/Toolbar";
+import WatchButton from "../../components/WatchButton";
+import { colors, spacing } from "../../constants/theme";
 import { useCompanies } from "../../context/CompaniesContext";
-import { MOCK_TRIAL_METRICS } from "../../mocks/phase1Preview";
-import { DrugSummary, TrialPhase } from "../../types/domain";
+import { useFinancialHealths, useValuations } from "../../hooks/useCompanyData";
+import type { Resource } from "../../hooks/useResource";
+import { FRONTIER_SCORE_EXPLANATION, type CompanyRecord } from "../../types/domain";
 import { applyDiscoverFilters } from "../../utils/discoverFilters";
+import { formatUsdCompact } from "../../utils/format";
 
-// Phase 8: Discovery Card (BUILD_BRIEF.txt §54), the Frontier Score model,
-// and filter logic all built and tested on the backend
-// (api/app/services/frontier_score.py, discover.py). All four filters
-// (Therapeutic Area, Stage, Modality, Target) are wired up here client-side
-// against the live company list from CompaniesContext (GET /companies),
-// using the exact same match rules as apply_discover_filters
-// (utils/discoverFilters.ts) — swapping to server-side filtering later
-// shouldn't change this screen's behavior.
-export default function DiscoverScreen() {
+const DEFAULT_COLUMNS = new Set([
+  "company",
+  "ticker",
+  "area",
+  "marketCap",
+  "revenue",
+  "cash",
+  "assets",
+  "phase",
+  "score",
+]);
+
+/** A number from a per-ticker resource, or why there isn't one. */
+function metricCell<T>(
+  ticker: string | undefined,
+  resource: Resource<T | null> | undefined,
+  pick: (data: T) => number | null,
+  format: (value: number) => string = formatUsdCompact,
+) {
+  if (!ticker) return <Missing label="No ticker" />;
+  if (!resource || resource.status === "loading") return <Cell muted>…</Cell>;
+  if (resource.status === "error" || !resource.data) return <Missing label="n/a" />;
+  const value = pick(resource.data);
+  return value === null ? <Missing label="n/r" /> : <Cell numeric>{format(value)}</Cell>;
+}
+
+function metricValue<T>(
+  resource: Resource<T | null> | undefined,
+  pick: (data: T) => number | null,
+): number | null {
+  return resource?.status === "loaded" && resource.data ? pick(resource.data) : null;
+}
+
+/**
+ * Company Explorer: every company BioLens tracks as one screener table.
+ * Financial columns come from each company's SEC filings (and live price,
+ * for market cap) and fill in as they load; a company BioLens can't value
+ * shows why (No ticker, n/a, n/r) rather than a blank or a zero.
+ */
+export default function CompanyExplorerScreen() {
   const router = useRouter();
   const { companies, isLoading, error } = useCompanies();
-  const [stage, setStage] = useState<TrialPhase | null>(null);
-  const [target, setTarget] = useState<string | null>(null);
-  const [therapeuticArea, setTherapeuticArea] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [area, setArea] = useState<string | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
   const [modality, setModality] = useState<string | null>(null);
+  const [target, setTarget] = useState<string | null>(null);
+  const [visible, setVisible] = useState(DEFAULT_COLUMNS);
 
-  const stageOptions = useMemo(
-    () => Array.from(new Set(companies.map((card) => card.stage))),
+  const tickers = useMemo(
+    () => companies.map((c) => c.ticker).filter((t): t is string => !!t),
     [companies],
   );
-  const targetOptions = useMemo(
-    () => Array.from(new Set(companies.flatMap((card) => card.targets))).sort(),
-    [companies],
-  );
-  const therapeuticAreaOptions = useMemo(
-    () => Array.from(new Set(companies.map((card) => card.therapeuticArea))).sort(),
-    [companies],
-  );
-  const modalityOptions = useMemo(
-    () => Array.from(new Set(companies.flatMap((card) => card.modalities))).sort(),
-    [companies],
-  );
+  const valuationOf = useValuations(tickers);
+  const healthOf = useFinancialHealths(tickers);
 
-  const filteredCards = useMemo(
-    () =>
-      applyDiscoverFilters(companies, {
-        stage: stage ?? undefined,
-        target: target ?? undefined,
-        therapeuticArea: therapeuticArea ?? undefined,
-        modality: modality ?? undefined,
-      }),
-    [companies, stage, target, therapeuticArea, modality],
-  );
-
-  // Every real drug across every company's real pipeline — derived from
-  // the same live data as the Companies section above, not a separate
-  // hand-picked list. `phase` is cast from PipelineStage (Discovery/Phase
-  // I-III/Regulatory/Approved) to TrialPhase (adds Preclinical/I-II/II-III)
-  // for display only; DrugCard just renders it as text.
-  const allDrugs: DrugSummary[] = useMemo(
-    () =>
-      companies.flatMap((company) =>
-        company.pipeline.map((asset) => ({
-          id: asset.drugId,
-          name: asset.drugName,
-          companyName: company.name,
-          target: asset.target,
-          modality: asset.modality,
-          phase: asset.stage as TrialPhase,
-          indication: asset.disease,
-          oneLiner: asset.nextMilestone ? `Next: ${asset.nextMilestone}` : asset.disease,
-          confidence: company.confidence,
-          isMockData: company.isMockData,
-        })),
+  const options = useMemo(() => {
+    const unique = (values: string[]) =>
+      Array.from(new Set(values))
+        .sort()
+        .map((v) => ({ value: v, label: v }));
+    return {
+      area: unique(companies.map((c) => c.therapeuticArea)),
+      stage: unique(companies.map((c) => c.stage)).sort(
+        (a, b) => (phaseRank(a.value) ?? 0) - (phaseRank(b.value) ?? 0),
       ),
-    [companies],
-  );
+      modality: unique(companies.flatMap((c) => c.modalities)),
+      target: unique(companies.flatMap((c) => c.targets)),
+    };
+  }, [companies]);
 
-  if (isLoading) {
-    return (
-      <ScreenShell title="Discover" subtitle="Loading companies…">
-        <View style={styles.centeredRow}>
-          <ActivityIndicator color={colors.accent} />
+  const rows = useMemo(() => {
+    const filtered = applyDiscoverFilters(companies, {
+      therapeuticArea: area ?? undefined,
+      stage: (stage ?? undefined) as CompanyRecord["stage"] | undefined,
+      modality: modality ?? undefined,
+      target: target ?? undefined,
+    });
+    const q = query.trim().toLowerCase();
+    if (!q) return filtered;
+    return filtered.filter((c) =>
+      [c.name, c.ticker ?? "", ...c.targets, ...c.pipeline.map((a) => a.drugName)].some((f) =>
+        f.toLowerCase().includes(q),
+      ),
+    );
+  }, [companies, area, stage, modality, target, query]);
+
+  const valuation = (c: CompanyRecord) => (c.ticker ? valuationOf(c.ticker) : undefined);
+  const health = (c: CompanyRecord) => (c.ticker ? healthOf(c.ticker) : undefined);
+
+  const allColumns: (Column<CompanyRecord> & { required?: boolean })[] = [
+    {
+      key: "company",
+      title: "Company",
+      flex: 2,
+      required: true,
+      sortValue: (c) => c.name,
+      render: (c) => (
+        <View style={styles.companyCell}>
+          <WatchButton entityType="company" entityId={c.id} size={13} />
+          <Cell strong>{c.name}</Cell>
+          {c.reviewStatus === "ai_drafted_unreviewed" ? (
+            <Tag label="AI-drafted" tone="caution" />
+          ) : null}
         </View>
-      </ScreenShell>
-    );
-  }
+      ),
+    },
+    {
+      key: "ticker",
+      title: "Ticker",
+      width: 84,
+      sortValue: (c) => c.ticker ?? null,
+      render: (c) => (c.ticker ? <Cell>{c.ticker}</Cell> : <Missing label="No ticker" />),
+    },
+    {
+      key: "area",
+      title: "Therapeutic area",
+      width: 130,
+      sortValue: (c) => c.therapeuticArea,
+      render: (c) => <Cell>{c.therapeuticArea}</Cell>,
+    },
+    {
+      key: "marketCap",
+      title: "Market cap",
+      width: 104,
+      align: "right",
+      sortValue: (c) => metricValue(valuation(c), (v) => v.marketCap),
+      render: (c) => metricCell(c.ticker, valuation(c), (v) => v.marketCap),
+    },
+    {
+      key: "revenue",
+      title: "Revenue (TTM)",
+      width: 112,
+      align: "right",
+      sortValue: (c) => metricValue(valuation(c), (v) => v.ttmRevenue),
+      render: (c) => metricCell(c.ticker, valuation(c), (v) => v.ttmRevenue),
+    },
+    {
+      key: "cash",
+      title: "Cash & inv.",
+      width: 104,
+      align: "right",
+      sortValue: (c) => metricValue(health(c), (h) => h.cashOnHand),
+      render: (c) => metricCell(c.ticker, health(c), (h) => h.cashOnHand),
+    },
+    {
+      key: "runway",
+      title: "Runway",
+      width: 88,
+      align: "right",
+      sortValue: (c) => metricValue(health(c), (h) => h.runwayMonths),
+      render: (c) => {
+        const h = health(c);
+        // No runway figure because the company generated cash last quarter.
+        if (
+          h?.status === "loaded" &&
+          h.data?.runwayMonths == null &&
+          (h.data?.quarterlyBurn ?? 0) > 0
+        )
+          return <Cell muted>CF positive</Cell>;
+        return metricCell(
+          c.ticker,
+          h,
+          (d) => d.runwayMonths,
+          (m) => `${m.toFixed(0)} mo`,
+        );
+      },
+    },
+    {
+      key: "assets",
+      title: "Pipeline assets",
+      width: 112,
+      align: "right",
+      sortValue: (c) => c.pipeline.length,
+      render: (c) => <Cell numeric>{c.pipeline.length}</Cell>,
+    },
+    {
+      key: "phase",
+      title: "Highest phase",
+      width: 180,
+      sortValue: (c) => phaseRank(c.stage),
+      render: (c) => <PhaseIndicator phase={c.stage} />,
+    },
+    {
+      key: "modality",
+      title: "Modalities",
+      flex: 1.4,
+      render: (c) => <Cell>{c.modalities.join(", ")}</Cell>,
+    },
+    {
+      key: "targets",
+      title: "Targets",
+      flex: 1.2,
+      render: (c) => <Cell>{c.targets.join(", ")}</Cell>,
+    },
+    {
+      key: "score",
+      title: "Frontier score",
+      width: 108,
+      align: "right",
+      sortValue: (c) => c.frontierScore,
+      render: (c) => <Cell numeric>{c.frontierScore}</Cell>,
+    },
+  ];
 
-  if (error) {
-    return (
-      <ScreenShell title="Discover" subtitle="Couldn't load companies.">
-        <Text style={styles.emptyState}>{error}</Text>
-      </ScreenShell>
-    );
+  const columns = allColumns.filter((c) => visible.has(c.key));
+
+  function toggleColumn(key: string) {
+    setVisible((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   return (
-    <ScreenShell
-      title="Discover"
-      subtitle="Oncology companies from emerging biotechs to large pharma, ranked by research activity — not investment attractiveness."
+    <Page
+      title="Company Explorer"
+      subtitle="Every company BioLens tracks, from emerging biotechs to large pharma."
+      actions={
+        <Pressable
+          onPress={() => router.push("/compare")}
+          style={({ hovered }: { hovered?: boolean }) => [
+            styles.button,
+            hovered && styles.buttonHovered,
+          ]}
+        >
+          <Text style={styles.buttonText}>Compare two companies</Text>
+        </Pressable>
+      }
     >
-      <FilterBar
-        dimensions={[
-          {
-            key: "area",
-            label: "Area",
-            value: therapeuticArea,
-            options: therapeuticAreaOptions,
-            onSelect: setTherapeuticArea,
-          },
-          {
-            key: "stage",
-            label: "Stage",
-            value: stage,
-            options: stageOptions,
-            onSelect: (value) => setStage(value as TrialPhase | null),
-          },
-          {
-            key: "modality",
-            label: "Modality",
-            value: modality,
-            options: modalityOptions,
-            onSelect: setModality,
-          },
-          {
-            key: "target",
-            label: "Target",
-            value: target,
-            options: targetOptions,
-            onSelect: setTarget,
-          },
-        ]}
-      />
+      <Toolbar>
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          placeholder="Company, ticker, drug or target"
+        />
+        <Select label="Area" value={area} options={options.area} onChange={setArea} />
+        <Select label="Stage" value={stage} options={options.stage} onChange={setStage} />
+        <Select
+          label="Modality"
+          value={modality}
+          options={options.modality}
+          onChange={setModality}
+        />
+        <Select label="Target" value={target} options={options.target} onChange={setTarget} />
+        <View style={styles.spacer} />
+        <ColumnMenu columns={allColumns} visible={visible} onToggle={toggleColumn} />
+      </Toolbar>
 
-      <Pressable style={styles.compareLink} onPress={() => router.push("/compare")}>
-        <Text style={styles.compareLinkText}>Compare two companies ›</Text>
-      </Pressable>
-
-      <Text style={styles.sectionTitle}>Companies</Text>
-      {filteredCards.length === 0 ? (
-        <Text style={styles.emptyState}>No companies match these filters.</Text>
-      ) : (
-        <ListContainer>
-          {filteredCards.map((card) => (
-            <DiscoveryCard
-              key={card.id}
-              data={card}
-              onExplore={() => router.push(`/company/${card.id}`)}
-            />
-          ))}
-        </ListContainer>
-      )}
-
-      <Text style={styles.sectionTitle}>Drugs</Text>
-      <ListContainer>
-        {allDrugs.map((drug) => (
-          <DrugCard key={drug.id} drug={drug} />
-        ))}
-      </ListContainer>
-
-      <Text style={styles.sectionTitle}>Trial data</Text>
-      <ListContainer>
-        {MOCK_TRIAL_METRICS.map((metric, i) => (
-          <TrialMetric key={`${metric.kind}-${i}`} data={metric} />
-        ))}
-      </ListContainer>
-
-      <Text style={styles.footnote}>
-        Therapeutic Area only has one real option today since every seed company is oncology-focused
-        — it&apos;ll do more work once coverage broadens.
-      </Text>
-    </ScreenShell>
+      <Panel
+        title="Companies"
+        meta={isLoading ? undefined : `${rows.length} of ${companies.length}`}
+        flush
+        footer={
+          <SourceNote source="SEC EDGAR filings and Yahoo Finance prices">
+            BioLens calculated. No ticker = the profile has no ticker, so there are no filings or
+            price to read; n/a = not computable from SEC filings (e.g. a foreign filer); n/r = not
+            reported; CF positive = operating cash flow was positive last quarter, so there&apos;s
+            no runway to compute. {FRONTIER_SCORE_EXPLANATION}
+          </SourceNote>
+        }
+      >
+        {isLoading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.accent} />
+          </View>
+        ) : error ? (
+          <Text style={styles.error}>{error}</Text>
+        ) : (
+          <DataTable
+            minWidth={1040}
+            rows={rows}
+            rowKey={(c) => c.id}
+            columns={columns}
+            initialSort={{ key: "score", direction: "desc" }}
+            onRowPress={(c) => router.push({ pathname: "/company/[id]", params: { id: c.id } })}
+            emptyText="No companies match these filters."
+          />
+        )}
+      </Panel>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredRow: {
-    alignItems: "center",
-    paddingVertical: spacing.xl,
+  companyCell: { flexDirection: "row", alignItems: "center", gap: 8 },
+  spacer: { flex: 1 },
+  loading: { padding: spacing.xl, alignItems: "center" },
+  error: { padding: spacing.lg, color: colors.textSecondary },
+  button: {
+    height: 30,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 3,
   },
-  sectionTitle: {
-    ...typography.heading,
-    fontSize: 17,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    marginTop: spacing.xl,
-  },
-  emptyState: {
-    ...typography.body,
-    color: colors.textTertiary,
-    marginBottom: spacing.md,
-  },
-  compareLink: {
-    marginTop: spacing.md,
-  },
-  compareLinkText: {
-    ...typography.body,
-    color: colors.accent,
-    fontWeight: "700",
-  },
-  footnote: {
-    ...typography.body,
-    fontSize: 12,
-    color: colors.textTertiary,
-    marginTop: spacing.lg,
-  },
+  buttonHovered: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  buttonText: { fontSize: 12, fontWeight: "500", color: colors.textPrimary },
 });

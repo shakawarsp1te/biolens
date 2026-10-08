@@ -17,6 +17,8 @@ type Props = {
   formatValue: (value: number) => string;
   formatAxis: (value: number) => string;
   height?: number;
+  /** Whole-number axis ticks (for counts). */
+  integer?: boolean;
 };
 
 const AXIS_WIDTH = 52;
@@ -26,14 +28,16 @@ const MAX_BAR = 24;
 const BAR_GAP = 2;
 const END_RADIUS = 3;
 
-/** ~4 round-number ticks spanning [min, max], always including zero. */
-function niceTicks(min: number, max: number): number[] {
+/** ~4 round-number ticks spanning [min, max], always including zero.
+ * `integer` keeps the step at 1 or more, for counts. */
+function niceTicks(min: number, max: number, integer = false): number[] {
   const lo = Math.min(0, min);
   const hi = Math.max(0, max);
   const span = hi - lo || 1;
   const raw = span / 4;
   const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
+  const nice = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? raw;
+  const step = integer ? Math.max(1, Math.ceil(nice)) : nice;
   const start = Math.floor(lo / step) * step;
   const ticks: number[] = [];
   for (let v = start; v <= hi + step * 0.001; v += step) ticks.push(Number(v.toPrecision(12)));
@@ -63,12 +67,13 @@ export default function BarChart({
   formatValue,
   formatAxis,
   height = 200,
+  integer = false,
 }: Props) {
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
 
   const values = series.flatMap((s) => s.values.filter((v): v is number => v !== null));
-  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values));
+  const ticks = niceTicks(Math.min(0, ...values), Math.max(0, ...values), integer);
   const domainMin = ticks[0];
   const domainMax = ticks[ticks.length - 1];
   const plotHeight = height - TOP_PAD - BOTTOM_PAD;
